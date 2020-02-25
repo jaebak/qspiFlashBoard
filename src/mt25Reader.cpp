@@ -19,7 +19,7 @@ int main(int argc, char const *argv[]) {
   // Settings
   bool verbose = false;
   enum Protocol {spi, qspi};
-  Protocol readProtocol = spi;
+  Protocol readProtocol = qspi;
   uint32 readStartAddress = 0x000000;
 	// Max size: 16777216 (65535 bytes per read)
   //uint32 readDataSize = 8388608; //bytes
@@ -85,7 +85,7 @@ int main(int argc, char const *argv[]) {
 			break;
 		}
 	}
-  if (dataSame) std::cout<<"[Success] readDataSize<<" bytes of data are as expected"<<endl;
+  if (dataSame) std::cout<<"[Success] "<<readDataSize<<" bytes of data are as expected"<<endl;
 
   double seconds = (std::chrono::duration<double>(std::chrono::high_resolution_clock::now() - beginTime)).count();
   std::cout<<"Program took "<<seconds<<" seconds"<<std::endl;
