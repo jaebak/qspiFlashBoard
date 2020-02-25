@@ -25,6 +25,7 @@ namespace Mt25Flash {
   bool waitForFlashReady(FT_HANDLE ftHandle) {
     const int WAIT_FLASH_READY_TIMES = 500;
 
+    int waitTime = 0;
     for(int i=0; i<WAIT_FLASH_READY_TIMES; ++i) {
       std::vector<unsigned char> writeBuffer;
       writeBuffer.push_back(CmdReadStatusRegister);
@@ -43,11 +44,15 @@ namespace Mt25Flash {
       }
 
       if ((readBuffer[1] & 0x01) == 0x00) { // not in write operation 
+        if(waitTime!= 0) std::cout<<"Waiting for flash for "<<waitTime<<" milliseconds"<<std::endl;
         return true;
       }
 
+      //std::cout<<"["<<i<<"] Waiting for flash"<<std::endl;
+      waitTime++;
       std::this_thread::sleep_for(std::chrono::milliseconds(1));
     }
+
 
     std::cout<<"waitForFlashReady failed"<<std::endl;
     return false;
@@ -213,10 +218,14 @@ namespace Mt25Flash {
     }
 
     // Write Flash
-    uint16 notSentByte = nBytes;
-    uint16 sentByte=0;
+    uint32 notSentByte = nBytes;
+    uint32 sentByte=0;
+
+    int printCounter = 1;
+    int counter = 0;
 
     while (notSentByte > 0) {
+      counter++;
       uint16 data_size = std::min<size_t>(SPI_FLASH_MAX_WRITE_SIZE, notSentByte);
 
       ftStatus = FT4222_SPIMaster_SetLines(ftHandle,SPI_IO_SINGLE);
@@ -225,15 +234,19 @@ namespace Mt25Flash {
         std::cout<<"qspiFlashWrite failed"<<std::endl;
         return 0;
       }
-      if (!waitForFlashReady(ftHandle)) {
-        std::cout<<"qspiFlashWrite failed"<<std::endl;
-        return 0;
-      }
+      //if (!waitForFlashReady(ftHandle)) {
+      //  std::cout<<"qspiFlashWrite failed"<<std::endl;
+      //  return 0;
+      //}
+      //std::this_thread::sleep_for(std::chrono::milliseconds(50));
+      //waitForFlashReady(ftHandle);
 
       if (!writeEnableCommand(ftHandle)) {
         std::cout<<"qspiFlashWrite failed"<<std::endl;
         return 0;
       }
+
+      //waitForFlashReady(ftHandle);
 
       ftStatus = FT4222_SPIMaster_SetLines(ftHandle,SPI_IO_QUAD);
       if (FT_OK != ftStatus) {
@@ -241,18 +254,23 @@ namespace Mt25Flash {
         std::cout<<"qspiFlashWrite failed"<<std::endl;
         return 0;
       }
+      //std::this_thread::sleep_for(std::chrono::milliseconds(100));
 
       if(!quadIOPageProgramCommand(ftHandle, startAddress+sentByte, &sendData[sentByte], data_size)) {
         std::cout<<"qspiFlashWrite failed"<<std::endl;
         return 0;
       } else {
-        printf("writing flash start address =[%x] %d bytes\n", startAddress+sentByte, data_size);
+        if (printCounter == counter) {
+          printf("[%i] writing flash start address =[%x] %d bytes\n", printCounter, startAddress+sentByte, data_size);
+          printCounter = printCounter * 2;
+        }
       }
 
       notSentByte -= data_size;
       sentByte    += data_size;
 
-      std::this_thread::sleep_for(std::chrono::milliseconds(10));
+      //std::this_thread::sleep_for(std::chrono::milliseconds(100));
+      //std::this_thread::sleep_for(std::chrono::milliseconds(10));
     }
 
     ftStatus = FT4222_SPIMaster_SetLines(ftHandle,SPI_IO_SINGLE);
@@ -302,8 +320,8 @@ namespace Mt25Flash {
     }
 
     // Write flash
-    uint16 notSentByte = nBytes;
-    uint16 sentByte=0;
+    uint32 notSentByte = nBytes;
+    uint32 sentByte=0;
 
     while (notSentByte > 0) {
       uint16 data_size = std::min<size_t>(SPI_FLASH_MAX_WRITE_SIZE, notSentByte);
@@ -335,29 +353,93 @@ namespace Mt25Flash {
     }
   }
 
-  bool readDataBytesCommand(FT_HANDLE ftHandle, uint32 address, unsigned char * pData , uint16 size)
+	std::string makeTestData(uint32 sendDataSize) {
+		std::string sendData;
+	  sendData.resize(sendDataSize);
+	  for (unsigned iData = 0; iData < sendDataSize; ++iData) sendData[iData] = (uint8)iData;
+	  //// Print test data
+    //std::vector<unsigned char> t_sendData;
+    //for (int i=0; i<sendDataSize;i++) {
+    //  t_sendData.push_back(sendData[i]);
+    //}
+    //for (int i=0; i<t_sendData.size(); ++i) printf("send data[%i] %#04x\n", i, t_sendData[i]);
+		return sendData;
+	}
+
+  bool readDataBytesCommand(FT_HANDLE ftHandle, uint32 address, unsigned char * pData , uint32 size)
   {
-    uint16 sizeTransferred;
-    FT4222_STATUS ftStatus;
-    std::vector<unsigned char> writeBuffer;
-    writeBuffer.push_back(CmdFastRead);
-    writeBuffer.push_back((unsigned char)((address & 0xFF0000) >> 16));
-    writeBuffer.push_back((unsigned char)((address & 0x00FF00) >> 8));
-    writeBuffer.push_back((unsigned char)( address & 0x0000FF));
+		//printf("address: %#x\n", address);
+		//std::cout<<"size: "<<size<<std::endl;
+		uint32 notReadByte = size;
+		uint32 readByte = 0;
 
-    ftStatus = FT4222_SPIMaster_SingleWrite(ftHandle, &writeBuffer[0], writeBuffer.size(), &sizeTransferred, false);
-    if((ftStatus!=FT4222_OK) ||  (sizeTransferred != writeBuffer.size())) {
-      std::cout<<"FT4222_SPIMaster_SingleWrite failed"<<std::endl;
-      std::cout<<"readDataBytesCommand failed"<<std::endl;
-      return false;
-    }
+		while (notReadByte > 0) {
+      uint16 sizeTransferred;
+      FT4222_STATUS ftStatus;
 
-    ftStatus = FT4222_SPIMaster_SingleRead(ftHandle, pData, size, &sizeTransferred, true);
-    if((ftStatus!=FT4222_OK) ||  (sizeTransferred != size)) {
-      std::cout<<"FT4222_SPIMaster_SingleRead failed"<<std::endl;
-      std::cout<<"readDataBytesCommand failed"<<std::endl;
-      return false;
-    }
+      std::vector<unsigned char> writeBuffer;
+      writeBuffer.push_back(CmdFastRead);
+      writeBuffer.push_back((unsigned char)(((address+readByte) & 0xFF0000) >> 16));
+      writeBuffer.push_back((unsigned char)(((address+readByte) & 0x00FF00) >> 8));
+      writeBuffer.push_back((unsigned char)( (address+readByte) & 0x0000FF));
+
+      ftStatus = FT4222_SPIMaster_SingleWrite(ftHandle, &writeBuffer[0], writeBuffer.size(), &sizeTransferred, false);
+      if((ftStatus!=FT4222_OK) ||  (sizeTransferred != writeBuffer.size())) {
+		  	std::cout<<"FT4222_SPIMaster_SingleWrite failed"<<std::endl;
+		  	std::cout<<"readDataBytesCommand failed"<<std::endl;
+        return false;
+      }
+
+      uint16 dataSize = std::min<size_t>(65535, notReadByte);
+
+      ftStatus = FT4222_SPIMaster_SingleRead(ftHandle, &pData[address+readByte], dataSize, &sizeTransferred, true);
+      if((ftStatus!=FT4222_OK) ||  (sizeTransferred != dataSize)) {
+        std::cout<<"FT4222_SPIMaster_SingleRead failed"<<std::endl;
+        std::cout<<"readDataBytesCommand failed"<<std::endl;
+        return false;
+      }
+
+			std::cout<<"sizeTransferred: "<<sizeTransferred<<std::endl;
+
+      notReadByte -= sizeTransferred;
+      readByte    += sizeTransferred;
+
+		  //printf("address: %#x\n", address+readByte);
+		  ////printf("address[0]: %#04x\n", address & 0x0000FF);
+		  ////printf("address[1]: %#04x\n", address & 0x00FF00);
+		  ////printf("address[2]: %#04x\n", address & 0xFF0000);
+			////std::cout<<"writeBuffer.size: "<<writeBuffer.size()<<std::endl;
+			//std::cout<<"size: "<<size<<std::endl;
+			//std::cout<<"dataSize: "<<dataSize<<std::endl;
+			//std::cout<<"notReadByte: "<<notReadByte<<std::endl;
+
+		}
+
+    //uint16 sizeTransferred;
+    //FT4222_STATUS ftStatus;
+    //std::vector<unsigned char> writeBuffer;
+    //writeBuffer.push_back(CmdFastRead);
+    //writeBuffer.push_back((unsigned char)((address & 0xFF0000) >> 16));
+    //writeBuffer.push_back((unsigned char)((address & 0x00FF00) >> 8));
+    //writeBuffer.push_back((unsigned char)( address & 0x0000FF));
+
+		////printf("address[0]: %#04x\n", address & 0x0000FF);
+		////printf("address[1]: %#04x\n", address & 0x00FF00);
+		////printf("address[2]: %#04x\n", address & 0xFF0000);
+
+    //ftStatus = FT4222_SPIMaster_SingleWrite(ftHandle, &writeBuffer[0], writeBuffer.size(), &sizeTransferred, false);
+    //if((ftStatus!=FT4222_OK) ||  (sizeTransferred != writeBuffer.size())) {
+		//	std::cout<<"FT4222_SPIMaster_SingleWrite failed"<<std::endl;
+		//	std::cout<<"readDataBytesCommand failed"<<std::endl;
+    //  return false;
+    //}
+
+    //ftStatus = FT4222_SPIMaster_SingleRead(ftHandle, pData, size, &sizeTransferred, true);
+    //if((ftStatus!=FT4222_OK) ||  (sizeTransferred != size)) {
+    //  std::cout<<"FT4222_SPIMaster_SingleRead failed"<<std::endl;
+    //  std::cout<<"readDataBytesCommand failed"<<std::endl;
+    //  return false;
+    //}
 
     return true;
   }
@@ -379,6 +461,8 @@ namespace Mt25Flash {
       return 0;
     }
 
+		std::cout<<"readData size: "<<readData.size()<<std::endl;
+
     if(!readDataBytesCommand(ftHandle, startAddress,&readData[0], readData.size())) {
       std::cout<<"spiFlashRead failed"<<std::endl;
       return 0;
@@ -396,25 +480,79 @@ namespace Mt25Flash {
 
   }
 
-  bool fastQuadReadCommand(FT_HANDLE ftHandle, uint32 address, unsigned char * pData , uint16 size, int nDummy=4)
+  bool fastQuadReadCommand(FT_HANDLE ftHandle, uint32 address, unsigned char * pData , uint32 size, int nDummy=4)
   {
-    //int nDummy = 5; for quad 0xEB
-    uint32 sizeOfRead;
-    FT4222_STATUS ftStatus;
-    std::vector<unsigned char> writeBuffer;
+		uint32 notReadByte = size;
+		uint32 readByte = 0;
 
-    writeBuffer.push_back(CmdFastQuadRead);
-    writeBuffer.push_back((unsigned char)((address & 0xFF0000) >> 16));
-    writeBuffer.push_back((unsigned char)((address & 0x00FF00) >> 8));
-    writeBuffer.push_back((unsigned char)( address & 0x0000FF));
-    for (int i=0; i<nDummy; ++i) writeBuffer.push_back(0xFF);
+		unsigned char t_pData[65535] ;
 
-    ftStatus = FT4222_SPIMaster_MultiReadWrite(ftHandle, pData, &writeBuffer[0], 1+3, nDummy, size, &sizeOfRead);
-    if((ftStatus!=FT4222_OK) ||  (sizeOfRead != size)) {
-      std::cout<<"FT4222_SPIMaster_MultiReadWrite failed"<<std::endl;
-      std::cout<<"fastQuadReadCmd failed"<<std::endl;
-      return false;
-    }
+		while (notReadByte > 0) {
+      //int nDummy = 5; for quad 0xEB
+      uint32 sizeTransferred;
+      FT4222_STATUS ftStatus;
+
+      std::vector<unsigned char> writeBuffer;
+      writeBuffer.push_back(CmdFastQuadRead);
+      writeBuffer.push_back((unsigned char)(((address+readByte) & 0xFF0000) >> 16));
+      writeBuffer.push_back((unsigned char)(((address+readByte) & 0x00FF00) >> 8));
+      writeBuffer.push_back((unsigned char)( (address+readByte) & 0x0000FF));
+      for (int i=0; i<nDummy; ++i) writeBuffer.push_back(0xFF);
+
+      uint16 dataSize = std::min<size_t>(65535, notReadByte);
+
+      ftStatus = FT4222_SPIMaster_MultiReadWrite(ftHandle, &pData[address + readByte], &writeBuffer[0], 1+3, nDummy, dataSize, &sizeTransferred);
+      //ftStatus = FT4222_SPIMaster_MultiReadWrite(ftHandle, t_pData, &writeBuffer[0], 1+3, nDummy, dataSize, &sizeTransferred);
+      if((ftStatus!=FT4222_OK) ||  (sizeTransferred != dataSize)) {
+        std::cout<<"FT4222_SPIMaster_MultiReadWrite failed"<<std::endl;
+        std::cout<<"fastQuadReadCmd failed"<<std::endl;
+        return false;
+      }
+
+      //std::this_thread::sleep_for(std::chrono::milliseconds(50));
+      ftStatus = FT4222_SPIMaster_SetLines(ftHandle,SPI_IO_SINGLE);
+      if (FT_OK != ftStatus) {
+        std::cout<<"FT4222_SPIMaster_SetLines failed"<<std::endl;
+        std::cout<<"fastQuadReadCmd failed"<<std::endl;
+        return 0;
+      }
+      waitForFlashReady(ftHandle);
+      ftStatus = FT4222_SPIMaster_SetLines(ftHandle,SPI_IO_QUAD);
+      if (FT_OK != ftStatus) {
+        std::cout<<"FT4222_SPIMaster_SetLines failed"<<std::endl;
+        std::cout<<"fastQuadReadCmd failed"<<std::endl;
+        return 0;
+      }
+
+			//for (unsigned i=0; i<sizeTransferred; ++i) pData[address+readByte+i] = t_pData[i];
+
+			std::cout<<"pData["<<readByte<<"] sizeTransferred: "<<sizeTransferred<<std::endl;
+			//printf("pData[%i]: %#04x t_pData: %#04x\n", readByte, pData[address+readByte], t_pData[0]);
+			//printf("pData[%i]: %#04x t_pData: %#04x\n", readByte, pData[address+readByte], t_pData[1]);
+			printf("pData[%i]: %#04x \n", readByte, pData[address+readByte]);
+
+      notReadByte -= sizeTransferred;
+      readByte    += sizeTransferred;
+
+		}
+
+    ////int nDummy = 5; for quad 0xEB
+    //uint32 sizeOfRead;
+    //FT4222_STATUS ftStatus;
+    //std::vector<unsigned char> writeBuffer;
+
+    //writeBuffer.push_back(CmdFastQuadRead);
+    //writeBuffer.push_back((unsigned char)((address & 0xFF0000) >> 16));
+    //writeBuffer.push_back((unsigned char)((address & 0x00FF00) >> 8));
+    //writeBuffer.push_back((unsigned char)( address & 0x0000FF));
+    //for (int i=0; i<nDummy; ++i) writeBuffer.push_back(0xFF);
+
+    //ftStatus = FT4222_SPIMaster_MultiReadWrite(ftHandle, pData, &writeBuffer[0], 1+3, nDummy, size, &sizeOfRead);
+    //if((ftStatus!=FT4222_OK) ||  (sizeOfRead != size)) {
+    //  std::cout<<"FT4222_SPIMaster_MultiReadWrite failed"<<std::endl;
+    //  std::cout<<"fastQuadReadCmd failed"<<std::endl;
+    //  return false;
+    //}
 
     return true;
   }
@@ -444,10 +582,10 @@ namespace Mt25Flash {
       std::cout<<"qspiFlashRead failed"<<std::endl;
       return 0;
     }
-    if(!waitForFlashReady(ftHandle)) {
-      std::cout<<"qspiFlashRead failed"<<std::endl;
-      return 0;
-    }
+    //if(!waitForFlashReady(ftHandle)) {
+    //  std::cout<<"qspiFlashRead failed"<<std::endl;
+    //  return 0;
+    //}
   }
 
 
