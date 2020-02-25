@@ -63,13 +63,15 @@ Below is a list of the software
 - MT25QU128ABA8ESF write and read test : mt25Tester
 
 TODO
-Make read structure more like write... to make it easier for computer to read stuff.
-Make tester print diff stuff in case things are not working
-Add reading flash start address (Test)
++Make tester print diff stuff in case things are not working+
++Fixed bug when using flash start address for read+
+
+
+Identified problem with write when over 256 bytes and has a start address.
+The wroten data is looped back...
+
 Make verbose flag for operations
 Clean up comments
-
-
 Find why dummy is strange
 fix warnings
 Make command for previous cmdFastQuadRead

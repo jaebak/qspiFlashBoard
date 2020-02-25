@@ -18,13 +18,17 @@ int main(int argc, char const *argv[]) {
 
   // Settings
   bool verbose = false;
+  bool printData = true;
   enum Protocol {spi, qspi};
-  Protocol readProtocol = qspi;
+  Protocol readProtocol = spi;
   uint32 readStartAddress = 0x000000;
 	// Max size: 16777216 (65535 bytes per read)
   //uint32 readDataSize = 8388608; //bytes
-  uint32 readDataSize = 16777216; //bytes
-  //uint32 readDataSize = 65536*8; //bytes
+  //uint32 readDataSize = 16777216; //bytes
+  //uint32 readDataSize = 65536*4+1; //bytes
+  //uint32 readDataSize = 65536*2+16; //bytes
+  //uint32 readDataSize = 65536*2; //bytes
+  uint32 readDataSize = 256*2+16; //bytes
 
   // Get ft4222 devie
   vector< FT_DEVICE_LIST_INFO_NODE > ft4222DeviceList;
@@ -66,7 +70,7 @@ int main(int argc, char const *argv[]) {
 	// Print data
   //for (int i=0; i<readData.size(); ++i) printf("%c", readData[i]);
 	//std::cout<<std::endl;
-  //for (int i=0; i<readData.size(); ++i) printf("read data[%i] %#04x\n", i, readData[i]);
+  if (printData) for (int i=0; i<readData.size(); ++i) printf("read data[%i] %#04x\n", i, readData[i]);
 
 	// For debugging purpose
 	std::string sendData;

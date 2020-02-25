@@ -352,10 +352,13 @@ namespace Mt25Flash {
     }
   }
 
-	std::string makeTestData(uint32 sendDataSize) {
+	std::string makeTestData(uint32 sendDataSize, int fill=-1) {
 		std::string sendData;
 	  sendData.resize(sendDataSize);
-	  for (unsigned iData = 0; iData < sendDataSize; ++iData) sendData[iData] = (uint8)iData;
+	  for (unsigned iData = 0; iData < sendDataSize; ++iData) {
+      if (fill == -1) sendData[iData] = (uint8)iData;
+      else sendData[iData] = (uint8)fill;
+    }
 	  //// Print test data
     //std::vector<unsigned char> t_sendData;
     //for (int i=0; i<sendDataSize;i++) {
@@ -383,7 +386,7 @@ namespace Mt25Flash {
       return false;
     }
 
-    ftStatus = FT4222_SPIMaster_SingleRead(ftHandle, &pData[address], size, &sizeTransferred, true);
+    ftStatus = FT4222_SPIMaster_SingleRead(ftHandle, pData, size, &sizeTransferred, true);
     if((ftStatus!=FT4222_OK) ||  (sizeTransferred != size)) {
       std::cout<<"FT4222_SPIMaster_SingleRead failed"<<std::endl;
       std::cout<<"readDataBytesCommand failed"<<std::endl;
@@ -402,7 +405,7 @@ namespace Mt25Flash {
 		while (notReadByte > 0) {
       uint16 dataSize = std::min<size_t>(65535, notReadByte);
 
-      if(!readDataBytesCommand(ftHandle, startAddress+readByte,&readData[0], dataSize)) {
+      if(!readDataBytesCommand(ftHandle, startAddress+readByte, &readData[readByte], dataSize)) {
         std::cout<<"spiFlashRead failed"<<std::endl;
         return 0;
       } else {
@@ -434,7 +437,7 @@ namespace Mt25Flash {
     writeBuffer.push_back((unsigned char)( address & 0x0000FF));
     for (int i=0; i<nDummy; ++i) writeBuffer.push_back(0xFF);
 
-    ftStatus = FT4222_SPIMaster_MultiReadWrite(ftHandle, &pData[address], &writeBuffer[0], 1+3, nDummy, size, &sizeTransferred);
+    ftStatus = FT4222_SPIMaster_MultiReadWrite(ftHandle, pData, &writeBuffer[0], 1+3, nDummy, size, &sizeTransferred);
     if((ftStatus!=FT4222_OK) ||  (sizeTransferred != size)) {
       std::cout<<"FT4222_SPIMaster_MultiReadWrite failed"<<std::endl;
       std::cout<<"fastQuadReadCmd failed"<<std::endl;
@@ -461,7 +464,7 @@ namespace Mt25Flash {
       }
 
       // Read flash
-      if(!fastQuadReadCommand(ftHandle, startAddress+readByte,&readData[0], dataSize)) {
+      if(!fastQuadReadCommand(ftHandle, startAddress+readByte, &readData[readByte], dataSize)) {
         std::cout<<"qspiFlashRead failed"<<std::endl;
         return 0;
       } else {

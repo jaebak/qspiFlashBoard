@@ -22,13 +22,13 @@ int main(int argc, char const *argv[]) {
   enum Protocol {spi, qspi};
   Protocol writeProtocol = qspi;
   Protocol readProtocol = qspi;
-  uint32 sendStartAddress = 0x000000;
-  uint32 readStartAddress = 0x000000;
+  uint32 sendStartAddress = 0x000010;
+  uint32 readStartAddress = 0x000010;
 	// Max size: 16777216 (255 bytes per write, 65535 bytes per read)
   //uint32 sendDataSize = 16777216; //bytes
   //uint32 readDataSize = 16777216; //bytes
-  uint32 sendDataSize = 65536*8; //bytes
-  uint32 readDataSize = 65536*8; //bytes
+  uint32 sendDataSize = 65536*2; //bytes
+  uint32 readDataSize = 65536*2; //bytes
 
 	// Set data
 	string sendData;
@@ -88,15 +88,18 @@ int main(int argc, char const *argv[]) {
 
 	// Compare write and read data
 	if( 0 != memcmp(&v_sendData[0], &readData[0], readDataSize)) {
-		std::cout<<"compare data error"<<std::endl;
+		std::cout<<"[Error] Write data and read data is different"<<std::endl;
 		for (unsigned i = 0;  i < readDataSize; ++i ) {
 			if (v_sendData[i] != readData[i]) {
+        //std::cout<<"[Error] Data starts to become different from below"<<std::endl;
+				if (i>0) printf("[Before] SendData[%i]: %#04x, ReadData[%i]: %#04x\n", i-1, v_sendData[i-1], i-1, readData[i-1]);
 				printf("SendData[%i]: %#04x, ReadData[%i]: %#04x\n", i, v_sendData[i], i, readData[i]);
+				//if (i<readDataSize-1) printf("[After] SendData[%i]: %#04x, ReadData[%i]: %#04x\n", i+1, v_sendData[i+1], i+1, readData[i+1]);
 			}
 		}
 		return 0;
 	} else {
-		std::cout<<"data is equal"<<std::endl;
+		std::cout<<"[Success] Data is equal"<<std::endl;
 	}
 
   double seconds = (std::chrono::duration<double>(std::chrono::high_resolution_clock::now() - beginTime)).count();

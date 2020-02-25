@@ -18,8 +18,10 @@ int main(int argc, char const *argv[]) {
   bool verbose = false;
   enum Protocol {spi, qspi};
   Protocol writeProtocol = qspi;
-  uint32 sendStartAddress = 0x000000;
-  unsigned sendDataSize = 2000;
+  uint32 sendStartAddress = 0x000010;
+  //unsigned sendDataSize = 3;
+  //uint32 sendDataSize = 65536*2; //bytes
+  uint32 sendDataSize = 256*2; //bytes
 
 	// Set data
 	string sendData;
@@ -40,7 +42,8 @@ gluino pair production with three-body decays into top quarks and
 neutralinos. Gluinos with a mass below about 2150~\GeV are excluded at a 95\%
 confidence level for scenarios with $m({\tilde\chi^0_1})<700$~\GeV, and
 the highest excluded neutralino mass is about 1250~\GeV.})";
-  //sendData = Mt25Flash::makeTestData(sendDataSize);
+  sendData = Mt25Flash::makeTestData(sendDataSize);
+  //sendData = Mt25Flash::makeTestData(sendDataSize, 10);
   cout<<"Send data size: "<<sendDataSize<<endl;
 
   // Get ft4222 device
