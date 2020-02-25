@@ -63,26 +63,11 @@ Below is a list of the software
 - MT25QU128ABA8ESF write and read test : mt25Tester
 
 TODO
-+Test board out+
-+Try saving latex file+
-+Fix make file to include header file changes+
-+Add c++11+
-+Writing in qspi is not working sometimes. Needed to add more time..+
-+Add system clock modifier+
-+Make test script test with more data+
-+Fix read and write when data is large+
-+spi, qspi failed (Let's find why qspi read failed)+
-+qspi, qspi tested+
-+Bug fix for read and write when data is large+
-+qspi read was sped up+
-+Sped up qspi write+
-
-
 Make read structure more like write... to make it easier for computer to read stuff.
 Make tester print diff stuff in case things are not working
-Change things to inline to make it quicker
 Add reading flash start address (Test)
 Make verbose flag for operations
+Clean up comments
 
 
 Find why dummy is strange

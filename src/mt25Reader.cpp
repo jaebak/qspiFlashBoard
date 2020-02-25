@@ -19,12 +19,12 @@ int main(int argc, char const *argv[]) {
   // Settings
   bool verbose = false;
   enum Protocol {spi, qspi};
-  Protocol readProtocol = qspi;
+  Protocol readProtocol = spi;
   uint32 readStartAddress = 0x000000;
 	// Max size: 16777216 (65535 bytes per read)
-  //uint32 readDataSize = 2122227; //bytes
-  uint32 readDataSize = 8388608; //bytes
-  //uint32 readDataSize = 16777216; //bytes
+  //uint32 readDataSize = 8388608; //bytes
+  uint32 readDataSize = 16777216; //bytes
+  //uint32 readDataSize = 65536*8; //bytes
 
   // Get ft4222 devie
   vector< FT_DEVICE_LIST_INFO_NODE > ft4222DeviceList;
@@ -85,7 +85,7 @@ int main(int argc, char const *argv[]) {
 			break;
 		}
 	}
-  if (dataSame) std::cout<<readDataSize<<" bytes of data are as expected"<<endl;
+  if (dataSame) std::cout<<"[Success] readDataSize<<" bytes of data are as expected"<<endl;
 
   double seconds = (std::chrono::duration<double>(std::chrono::high_resolution_clock::now() - beginTime)).count();
   std::cout<<"Program took "<<seconds<<" seconds"<<std::endl;
