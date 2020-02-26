@@ -18,9 +18,9 @@ int main(int argc, char const *argv[]) {
 
   // Settings
   bool verbose = true;
-  bool printDataByte = false;
+  bool printDataByte = true;
   bool printDataChar = false;
-  bool debug = true;
+  bool debug = false;
   enum Protocol {spi, qspi};
   Protocol readProtocol = qspi;
   // Max startAddress: 0xFFFFFF

@@ -18,7 +18,7 @@ int main(int argc, char const *argv[]) {
   std::chrono::high_resolution_clock::time_point beginTime = std::chrono::high_resolution_clock::now();
 
   // Settings
-  bool verbose = false;
+  bool verbose = true;
   bool printDataByte = false;
   enum Protocol {spi, qspi};
   Protocol writeProtocol = qspi;

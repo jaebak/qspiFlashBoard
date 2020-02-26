@@ -55,7 +55,7 @@ namespace Ft4222CustomLibrary {
       printf("  LocId= 0x%x\n",       device.LocId);
       printf("  SerialNumber= %s\n",  device.SerialNumber);
       printf("  Description= %s\n",   device.Description);
-      printf("  ftHandle= 0x%x\n",    device.ftHandle);
+      printf("  ftHandle= %p\n",    device.ftHandle);
     }
 	}
 }

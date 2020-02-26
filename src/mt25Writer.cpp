@@ -15,7 +15,7 @@ using std::string;
 
 int main(int argc, char const *argv[]) {
   // Settings
-  bool verbose = false;
+  bool verbose = true;
   enum Protocol {spi, qspi};
   Protocol writeProtocol = qspi;
   // Max startAddress: 0xFFFFFF

@@ -67,9 +67,9 @@ TODO
 +The wroten data is looped back+
 +Print read with correct address+
 +Clean up comments+
++Find why dummy is strange+
++fix warnings+
 
-Find why dummy is strange
-fix warnings
 Make command for previous cmdFastQuadRead
 Answer quesiton on mt25Flash.h line 21
 
