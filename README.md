@@ -69,8 +69,8 @@ TODO
 +Clean up comments+
 +Find why dummy is strange+
 +fix warnings+
++Answer quesiton on mt25Flash.h line 21+
 
 Make command for previous cmdFastQuadRead
-Answer quesiton on mt25Flash.h line 21
 
 Unmark * in readme

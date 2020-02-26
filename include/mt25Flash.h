@@ -11,14 +11,15 @@
 #include "libft4222.h"
 
 #define SPI_FLASH_MAX_WRITE_SIZE 256
+#define FT4222_MAX_READ_SIZE     65535
+
 #define CmdReadStatusRegister   0x05
 #define CmdWriteEnable          0x06
-#define CmdBlockErase           0xD8
-#define CmdQuadIOPageProgram    0x38
+#define CmdSectorErase          0xD8
+#define CmdQuadFastProgram      0x38
 #define CmdPageProgram          0x02
-//#define CmdFastQuadRead         0xEB
-#define CmdFastQuadRead         0x6B
-#define CmdFastRead             0x03 // This this fast?
+#define CmdQuadFastRead         0x6B
+#define CmdRead                 0x03
 
 namespace Mt25Flash {
 
@@ -126,7 +127,7 @@ namespace Mt25Flash {
     FT4222_STATUS ftStatus;
     std::vector<unsigned char> writeBuffer;
 
-    writeBuffer.push_back(CmdBlockErase);
+    writeBuffer.push_back(CmdSectorErase);
     writeBuffer.push_back((unsigned char)((address & 0xFF0000) >> 16));
     writeBuffer.push_back((unsigned char)((address & 0x00FF00) >> 8));
     writeBuffer.push_back((unsigned char)( address & 0x0000FF));
@@ -187,7 +188,7 @@ namespace Mt25Flash {
     FT4222_STATUS ftStatus;
     std::vector<unsigned char> writeBuffer;
 
-    writeBuffer.push_back(CmdQuadIOPageProgram);
+    writeBuffer.push_back(CmdQuadFastProgram);
     writeBuffer.push_back((unsigned char)((address & 0xFF0000) >> 16));
     writeBuffer.push_back((unsigned char)((address & 0x00FF00) >> 8));
     writeBuffer.push_back((unsigned char)( address & 0x0000FF));
@@ -373,7 +374,7 @@ namespace Mt25Flash {
     uint16 sizeTransferred;
 
     std::vector<unsigned char> writeBuffer;
-    writeBuffer.push_back(CmdFastRead);
+    writeBuffer.push_back(CmdRead);
     writeBuffer.push_back((unsigned char)((address & 0xFF0000) >> 16));
     writeBuffer.push_back((unsigned char)((address & 0x00FF00) >> 8));
     writeBuffer.push_back((unsigned char)( address & 0x0000FF));
@@ -404,7 +405,7 @@ namespace Mt25Flash {
 		uint32 readByte = 0;
 
 		while (notReadByte > 0) {
-      uint16 dataSize = std::min<size_t>(65535, notReadByte);
+      uint16 dataSize = std::min<size_t>(FT4222_MAX_READ_SIZE, notReadByte);
 
       if(!readDataBytesCommand(ftHandle, startAddress+readByte, &readData[readByte], dataSize)) {
         std::cout<<"spiFlashRead failed"<<std::endl;
@@ -430,7 +431,7 @@ namespace Mt25Flash {
     FT4222_STATUS ftStatus;
     uint32 sizeTransferred;
     std::vector<unsigned char> writeBuffer;
-    writeBuffer.push_back(CmdFastQuadRead);
+    writeBuffer.push_back(CmdQuadFastRead);
     writeBuffer.push_back((unsigned char)((address & 0xFF0000) >> 16));
     writeBuffer.push_back((unsigned char)((address & 0x00FF00) >> 8));
     writeBuffer.push_back((unsigned char)( address & 0x0000FF));
@@ -454,7 +455,7 @@ namespace Mt25Flash {
 		uint32 readByte = 0;
 
 		while (notReadByte > 0) {
-      uint16 dataSize = std::min<size_t>(65535, notReadByte);
+      uint16 dataSize = std::min<size_t>(FT4222_MAX_READ_SIZE, notReadByte);
 
       ftStatus = FT4222_SPIMaster_SetLines(ftHandle,SPI_IO_QUAD);
       if (FT_OK != ftStatus) {
