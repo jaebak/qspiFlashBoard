@@ -226,6 +226,8 @@ namespace Mt25Flash {
     while (notSentByte > 0) {
       counter++;
       uint16 data_size = std::min<size_t>(SPI_FLASH_MAX_WRITE_SIZE, notSentByte);
+      // Prevent from going over page
+      if (counter==1) data_size = data_size - startAddress;
 
       ftStatus = FT4222_SPIMaster_SetLines(ftHandle,SPI_IO_SINGLE);
       if (FT_OK != ftStatus) {
@@ -261,7 +263,8 @@ namespace Mt25Flash {
       } else {
         if (printCounter == counter) {
           printf("[%i] writing flash start address =[%x] %d bytes\n", printCounter, startAddress+sentByte, data_size);
-          printCounter = printCounter * 2;
+          //printCounter = printCounter * 2;
+          printCounter = printCounter + 1;
         }
       }
 
@@ -322,8 +325,12 @@ namespace Mt25Flash {
     uint32 notSentByte = nBytes;
     uint32 sentByte=0;
 
+    int counter = 0;
     while (notSentByte > 0) {
+      counter++;
       uint16 data_size = std::min<size_t>(SPI_FLASH_MAX_WRITE_SIZE, notSentByte);
+      // Prevent from going over page
+      if (counter==1) data_size = data_size - startAddress;
 
       if(!waitForFlashReady(ftHandle)) {
         std::cout<<"spiFlashWrite failed"<<std::endl;

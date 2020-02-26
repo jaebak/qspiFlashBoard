@@ -20,8 +20,8 @@ int main(int argc, char const *argv[]) {
   bool verbose = false;
   bool printData = true;
   enum Protocol {spi, qspi};
-  Protocol readProtocol = spi;
-  uint32 readStartAddress = 0x000000;
+  Protocol readProtocol = qspi;
+  uint32 readStartAddress = 0x10000;
 	// Max size: 16777216 (65535 bytes per read)
   //uint32 readDataSize = 8388608; //bytes
   //uint32 readDataSize = 16777216; //bytes

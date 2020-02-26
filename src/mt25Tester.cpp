@@ -34,7 +34,7 @@ int main(int argc, char const *argv[]) {
 	string sendData;
   sendData = "QSPI test board is ready for radiation testing!";
   sendData = Mt25Flash::makeTestData(sendDataSize);
-  cout<<"Send data size: "<<sendDataSize<<endl;
+  cout<<"To send data size: "<<sendDataSize<<endl;
 
   // Get ft4222 device
   vector< FT_DEVICE_LIST_INFO_NODE > ft4222DeviceList;
