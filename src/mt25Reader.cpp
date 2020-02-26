@@ -18,16 +18,17 @@ int main(int argc, char const *argv[]) {
 
   // Settings
   bool verbose = true;
-  bool printDataByte = true;
-  bool printDataChar = false;
+  bool printDataByte = false;
+  bool printDataChar = true;
   bool debug = false;
   enum Protocol {spi, qspi};
-  Protocol readProtocol = qspi;
+  Protocol readProtocol = spi;
   // Max startAddress: 0xFFFFFF
   uint32 readStartAddress = 0x000000;
 	// Max dataSize: 16777216 (255 bytes per write, 65535 bytes per read)
   //uint32 readDataSize = 65536; //bytes
-  uint32 readDataSize = 256; //bytes
+  //uint32 readDataSize = 256; //bytes
+  uint32 readDataSize = 1322; //bytes
 
   // Get ft4222 devie
   vector< FT_DEVICE_LIST_INFO_NODE > ft4222DeviceList;

@@ -42,7 +42,8 @@ gluino pair production with three-body decays into top quarks and
 neutralinos. Gluinos with a mass below about 2150~\GeV are excluded at a 95\%
 confidence level for scenarios with $m({\tilde\chi^0_1})<700$~\GeV, and
 the highest excluded neutralino mass is about 1250~\GeV.})";
-  sendData = Mt25Flash::makeTestData(sendDataSize);
+  sendDataSize = sendData.size();
+  //sendData = Mt25Flash::makeTestData(sendDataSize);
   //sendData = Mt25Flash::makeTestData(sendDataSize, 10);
   cout<<"To send data size: "<<sendDataSize<<endl;
 

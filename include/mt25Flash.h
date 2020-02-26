@@ -23,6 +23,27 @@
 
 namespace Mt25Flash {
 
+  unsigned char readStatusRegister(FT_HANDLE ftHandle) {
+      std::vector<unsigned char> writeBuffer;
+      writeBuffer.push_back(CmdReadStatusRegister);
+      writeBuffer.push_back(0xFF);
+
+      std::vector<unsigned char> readBuffer;
+      readBuffer.resize(2);
+
+      uint16 sizeTransferred;
+      FT4222_STATUS ftStatus;
+
+      // FT4222_SPIMaster_SingleReadWrite(ftHandle, readBuffer, writeBuffer, bufferSize, sizeTransferred, isEndTransaction)
+      ftStatus = FT4222_SPIMaster_SingleReadWrite(ftHandle, &readBuffer[0], &writeBuffer[0], writeBuffer.size(), &sizeTransferred, true);
+      if((ftStatus!=FT4222_OK) ||  (sizeTransferred!=writeBuffer.size())) {
+        std::cout<<"readStatusRegister failed"<<std::endl;
+        return 0xff;
+      }
+
+      return readBuffer[1];
+  }
+
   bool waitForFlashReady(FT_HANDLE ftHandle, bool verbose = false) {
     const int WAIT_FLASH_READY_TIMES = 500;
 
@@ -38,12 +59,14 @@ namespace Mt25Flash {
       uint16 sizeTransferred;
       FT4222_STATUS ftStatus;
 
+      // FT4222_SPIMaster_SingleReadWrite(ftHandle, readBuffer, writeBuffer, bufferSize, sizeTransferred, isEndTransaction)
       ftStatus = FT4222_SPIMaster_SingleReadWrite(ftHandle, &readBuffer[0], &writeBuffer[0], writeBuffer.size(), &sizeTransferred, true);
       if((ftStatus!=FT4222_OK) ||  (sizeTransferred!=writeBuffer.size())) {
         std::cout<<"waitForFlashReady failed"<<std::endl;
         return false;
       }
 
+      if (verbose) printf("[0] %#08x [1] %#08x\n", readBuffer[0], readBuffer[1]);
       if ((readBuffer[1] & 0x01) == 0x00) { // not in write operation 
         if(verbose && waitTime!= 0) std::cout<<"Waiting for flash for "<<waitTime<<" milliseconds"<<std::endl;
         return true;
@@ -81,6 +104,7 @@ namespace Mt25Flash {
 
     // Execute command
     uint16 sizeTransferred;
+    // FT4222_SPIMaster_SingleReadWrite(ftHandle, readBuffer, writeBuffer, bufferSize, sizeTransferred, isEndTransaction)
     ftStatus = FT4222_SPIMaster_SingleReadWrite(ftHandle, &readBuffer[0], &writeBuffer[0], writeBuffer.size(), &sizeTransferred, true);
 
     if (ftStatus!=FT4222_OK) {
@@ -101,24 +125,32 @@ namespace Mt25Flash {
     return true;
   } 
 
-  bool writeEnableCommand(FT_HANDLE & ftHandle)
+  bool writeEnableCommand(FT_HANDLE & ftHandle, bool verbose = false)
   {
+    const int WAIT_FLASH_READY_TIMES = 500;
+
     uint8 outBuffer = CmdWriteEnable;
     uint16 sizeTransferred;
     FT4222_STATUS ftStatus;
 
-    ftStatus = FT4222_SPIMaster_SingleWrite(ftHandle, &outBuffer, 1, &sizeTransferred, true);
-    if((ftStatus!=FT4222_OK) ||  (sizeTransferred!=1)) {
-      std::cout<<"writeEnableCommand failed"<<std::endl;
-      return false;
+    // Fixing bug that write enable is not set
+    for(int i=0; i<WAIT_FLASH_READY_TIMES; ++i) {
+      ftStatus = FT4222_SPIMaster_SingleWrite(ftHandle, &outBuffer, 1, &sizeTransferred, true);
+      if((ftStatus!=FT4222_OK) ||  (sizeTransferred!=1)) {
+        std::cout<<"writeEnableCommand failed"<<std::endl;
+        return false;
+      }
+
+      uint16 statusRegister = readStatusRegister(ftHandle);
+      if ((statusRegister & 0x03) == 0x02) {
+        return true;
+      }
+      if (verbose) printf("statusRegister: %#08x Try setting write enable again\n", statusRegister);
+      std::this_thread::sleep_for(std::chrono::milliseconds(1));
     }
 
-    if(!waitForFlashReady(ftHandle)) {
-      std::cout<<"writeEnableCommand failed"<<std::endl;
-      return false;
-    }
-
-    return true;
+    std::cout<<"writeEnableCommand failed"<<std::endl;
+    return false;
   }
 
   bool blockEraseCommand(FT_HANDLE ftHandle, uint32 address)
@@ -270,7 +302,7 @@ namespace Mt25Flash {
       std::cout<<"qspiFlashWrite failed"<<std::endl;
       return false;
     }
-    if(!waitForFlashReady(ftHandle, verbose)) {
+    if(!waitForFlashReady(ftHandle)) {
       std::cout<<"qspiFlashWrite failed"<<std::endl;
       return false;
     }
@@ -323,7 +355,7 @@ namespace Mt25Flash {
       // Prevent from going over page
       if (counter==1) data_size = data_size - startAddress;
 
-      if(!waitForFlashReady(ftHandle, verbose)) {
+      if(!waitForFlashReady(ftHandle)) {
         std::cout<<"spiFlashWrite failed"<<std::endl;
         return 0;
       }
@@ -344,7 +376,7 @@ namespace Mt25Flash {
       sentByte    += data_size;
     }
 
-    if(!waitForFlashReady(ftHandle, verbose)) {
+    if(!waitForFlashReady(ftHandle)) {
       std::cout<<"spiFlashWrite failed"<<std::endl;
       return 0;
     }
@@ -418,7 +450,7 @@ namespace Mt25Flash {
       readByte    += dataSize;
     }
 
-    if(!waitForFlashReady(ftHandle, verbose)) {
+    if(!waitForFlashReady(ftHandle)) {
       std::cout<<"spiFlashRead failed"<<std::endl;
       return false;
     }
@@ -478,7 +510,7 @@ namespace Mt25Flash {
         std::cout<<"fastQuadReadCmd failed"<<std::endl;
         return 0;
       }
-      waitForFlashReady(ftHandle, verbose);
+      waitForFlashReady(ftHandle);
 
       notReadByte -= dataSize;
       readByte    += dataSize;
