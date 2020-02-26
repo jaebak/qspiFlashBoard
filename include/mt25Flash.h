@@ -262,7 +262,7 @@ namespace Mt25Flash {
         return 0;
       } else {
         if (printCounter == counter) {
-          printf("[%i] writing flash start address =[%x] %d bytes\n", printCounter, startAddress+sentByte, data_size);
+          printf("writing flash start address =[%#08x] %d bytes\n", startAddress+sentByte, data_size);
           //printCounter = printCounter * 2;
           printCounter = printCounter + 1;
         }
@@ -346,7 +346,7 @@ namespace Mt25Flash {
         std::cout<<"spiFlashWrite failed"<<std::endl;
         return 0;
       } else {
-        printf("writing flash start address =[%x] %d bytes\n", startAddress+sentByte, data_size);
+        printf("writing flash start address =[%#08x] %d bytes\n", startAddress+sentByte, data_size);
       }
 
       notSentByte -= data_size;
@@ -416,7 +416,7 @@ namespace Mt25Flash {
         std::cout<<"spiFlashRead failed"<<std::endl;
         return 0;
       } else {
-        printf("reading flash start address =[%x] %d bytes\n", startAddress+readByte, dataSize);
+        printf("reading flash start address =[%#08x] %d bytes\n", startAddress+readByte, dataSize);
         //for (int i=0; i<readData.size(); ++i) {
         //  printf("read data[%i] %#04x\n", i, readData[i]);
         //}
@@ -475,7 +475,7 @@ namespace Mt25Flash {
         std::cout<<"qspiFlashRead failed"<<std::endl;
         return 0;
       } else {
-        printf("reading flash start address =[%x] %d bytes\n", startAddress+readByte, dataSize);
+        printf("reading flash start address =[%#08x] %d bytes\n", startAddress+readByte, dataSize);
       }
 
       ftStatus = FT4222_SPIMaster_SetLines(ftHandle,SPI_IO_SINGLE);

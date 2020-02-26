@@ -19,16 +19,18 @@ int main(int argc, char const *argv[]) {
 
   // Settings
   bool verbose = false;
+  bool printDataByte = false;
   enum Protocol {spi, qspi};
   Protocol writeProtocol = qspi;
   Protocol readProtocol = qspi;
+  // Max startAddress: 0xFFFFFF
   uint32 sendStartAddress = 0x000010;
   uint32 readStartAddress = 0x000010;
-	// Max size: 16777216 (255 bytes per write, 65535 bytes per read)
+	// Max dataSize: 16777216 (255 bytes per write, 65535 bytes per read)
   //uint32 sendDataSize = 16777216; //bytes
   //uint32 readDataSize = 16777216; //bytes
-  uint32 sendDataSize = 65536*2; //bytes
-  uint32 readDataSize = 65536*2; //bytes
+  uint32 sendDataSize = 65536; //bytes
+  uint32 readDataSize = 65536; //bytes
 
 	// Set data
 	string sendData;
@@ -84,17 +86,14 @@ int main(int argc, char const *argv[]) {
 	if (readProtocol == qspi) Mt25Flash::qspiFlashRead(ftHandle, readStartAddress, readDataSize, readData);
 	else if (readProtocol == spi) Mt25Flash::spiFlashRead(ftHandle, readStartAddress, readDataSize, readData);
 
-  //for (int i=0; i<readData.size(); ++i) printf("read data[%i] %#04x\n", i, readData[i]);
+  if (printDataByte) for (int i=0; i<readData.size(); ++i) printf("read data[%#08x] %#04x\n", i+readStartAddress, readData[i]);
 
 	// Compare write and read data
 	if( 0 != memcmp(&v_sendData[0], &readData[0], readDataSize)) {
 		std::cout<<"[Error] Write data and read data is different"<<std::endl;
 		for (unsigned i = 0;  i < readDataSize; ++i ) {
 			if (v_sendData[i] != readData[i]) {
-        //std::cout<<"[Error] Data starts to become different from below"<<std::endl;
-				if (i>0) printf("[Before] SendData[%i]: %#04x, ReadData[%i]: %#04x\n", i-1, v_sendData[i-1], i-1, readData[i-1]);
-				printf("SendData[%i]: %#04x, ReadData[%i]: %#04x\n", i, v_sendData[i], i, readData[i]);
-				//if (i<readDataSize-1) printf("[After] SendData[%i]: %#04x, ReadData[%i]: %#04x\n", i+1, v_sendData[i+1], i+1, readData[i+1]);
+				printf("SendData[%#08x]: %#04x, ReadData[%#08x]: %#04x\n", i+sendStartAddress, v_sendData[i], i+readStartAddress, readData[i]);
 			}
 		}
 		return 0;

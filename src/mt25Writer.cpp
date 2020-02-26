@@ -18,10 +18,10 @@ int main(int argc, char const *argv[]) {
   bool verbose = false;
   enum Protocol {spi, qspi};
   Protocol writeProtocol = qspi;
+  // Max startAddress: 0xFFFFFF
   uint32 sendStartAddress = 0x10010;
-  //unsigned sendDataSize = 3;
-  //uint32 sendDataSize = 65536*2; //bytes
-  uint32 sendDataSize = 256*2; //bytes
+	// Max dataSize: 16777216 (255 bytes per write, 65535 bytes per read)
+  uint32 sendDataSize = 256; //bytes
 
 	// Set data
 	string sendData;
@@ -85,7 +85,7 @@ the highest excluded neutralino mass is about 1250~\GeV.})";
     else v_sendData.push_back(sendData[i]);
   }
   if (verbose) {
-	  for (int i=0; i<v_sendData.size(); ++i) printf("send data[%i] %#04x\n", i, v_sendData[i]);
+	  for (int i=0; i<v_sendData.size(); ++i) printf("send data[%#08x] %#04x\n", i+sendStartAddress, v_sendData[i]);
 	}
 
   // Write to flash

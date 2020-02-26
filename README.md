@@ -65,9 +65,8 @@ Below is a list of the software
 TODO
 +Identified problem with write when over 256 bytes and has a start address.+
 +The wroten data is looped back+
++Print read with correct address+
 
-Print read with correct address
-Make verbose flag for operations
 Clean up comments
 Find why dummy is strange
 fix warnings
