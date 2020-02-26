@@ -24,8 +24,8 @@ int main(int argc, char const *argv[]) {
   Protocol writeProtocol = qspi;
   Protocol readProtocol = qspi;
   // Max startAddress: 0xFFFFFF
-  uint32 sendStartAddress = 0x000010;
-  uint32 readStartAddress = 0x000010;
+  uint32 sendStartAddress = 0x000000;
+  uint32 readStartAddress = 0x000000;
 	// Max dataSize: 16777216 (255 bytes per write, 65535 bytes per read)
   //uint32 sendDataSize = 16777216; //bytes
   //uint32 readDataSize = 16777216; //bytes
@@ -78,13 +78,13 @@ int main(int argc, char const *argv[]) {
   }
 
   // Write to flash
-  if (writeProtocol == qspi) Mt25Flash::qspiFlashWrite(ftHandle, sendStartAddress, v_sendData);
-  else if (writeProtocol == spi) Mt25Flash::spiFlashWrite(ftHandle, sendStartAddress, v_sendData);
+  if (writeProtocol == qspi) Mt25Flash::qspiFlashWrite(ftHandle, sendStartAddress, v_sendData, verbose);
+  else if (writeProtocol == spi) Mt25Flash::spiFlashWrite(ftHandle, sendStartAddress, v_sendData, verbose);
 
 	// Read flash
   std::vector<unsigned char> readData;
-	if (readProtocol == qspi) Mt25Flash::qspiFlashRead(ftHandle, readStartAddress, readDataSize, readData);
-	else if (readProtocol == spi) Mt25Flash::spiFlashRead(ftHandle, readStartAddress, readDataSize, readData);
+	if (readProtocol == qspi) Mt25Flash::qspiFlashRead(ftHandle, readStartAddress, readDataSize, readData, verbose);
+	else if (readProtocol == spi) Mt25Flash::spiFlashRead(ftHandle, readStartAddress, readDataSize, readData, verbose);
 
   if (printDataByte) for (int i=0; i<readData.size(); ++i) printf("read data[%#08x] %#04x\n", i+readStartAddress, readData[i]);
 

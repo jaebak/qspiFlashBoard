@@ -17,15 +17,17 @@ int main(int argc, char const *argv[]) {
   std::chrono::high_resolution_clock::time_point beginTime = std::chrono::high_resolution_clock::now();
 
   // Settings
-  bool verbose = false;
-  bool printDataByte = true;
+  bool verbose = true;
+  bool printDataByte = false;
   bool printDataChar = false;
+  bool debug = true;
   enum Protocol {spi, qspi};
   Protocol readProtocol = qspi;
   // Max startAddress: 0xFFFFFF
-  uint32 readStartAddress = 0x010000;
+  uint32 readStartAddress = 0x000000;
 	// Max dataSize: 16777216 (255 bytes per write, 65535 bytes per read)
-  uint32 readDataSize = 65536; //bytes
+  //uint32 readDataSize = 65536; //bytes
+  uint32 readDataSize = 256; //bytes
 
   // Get ft4222 devie
   vector< FT_DEVICE_LIST_INFO_NODE > ft4222DeviceList;
@@ -61,8 +63,8 @@ int main(int argc, char const *argv[]) {
 
 	// Read flash
   std::vector<unsigned char> readData;
-	if (readProtocol == qspi) Mt25Flash::qspiFlashRead(ftHandle, readStartAddress, readDataSize, readData);
-	else if (readProtocol == spi) Mt25Flash::spiFlashRead(ftHandle, readStartAddress, readDataSize, readData);
+	if (readProtocol == qspi) Mt25Flash::qspiFlashRead(ftHandle, readStartAddress, readDataSize, readData, verbose);
+	else if (readProtocol == spi) Mt25Flash::spiFlashRead(ftHandle, readStartAddress, readDataSize, readData, verbose);
 
 	// Print data
   if (printDataChar) {
@@ -71,24 +73,28 @@ int main(int argc, char const *argv[]) {
   }
   if (printDataByte) for (int i=0; i<readData.size(); ++i) printf("read data[%#08x] %#04x\n", i+readStartAddress, readData[i]);
 
-	//// For debugging purpose
-	//std::string sendData;
-  //sendData = Mt25Flash::makeTestData(readDataSize);
-  //std::vector<unsigned char> v_sendData;
-  //for (int i=0; i<readDataSize;i++) {
-  //  if (i>=sendData.size()) v_sendData.push_back(0);
-  //  else v_sendData.push_back((uint8)sendData[i]);
-  //}
-  //bool dataSame = true;
-	//for (unsigned i = 0;  i < readDataSize; ++i ) {
-	//	if (v_sendData[i] != readData[i]) {
-  //    dataSame = false;
-  //    std::cout<<"[Error] Data starts to become different from below"<<std::endl;
-	//		printf("SendData[%i]: %#04x, ReadData[%i]: %#04x\n", i, v_sendData[i], i, readData[i]);
-	//		break;
-	//	}
-	//}
-  //if (dataSame) std::cout<<"[Success] "<<readDataSize<<" bytes of data are as expected"<<endl;
+	// For debugging purpose
+  if (debug) {
+	  std::string sendData;
+    sendData = Mt25Flash::makeTestData(readDataSize);
+    std::vector<unsigned char> v_sendData;
+    for (int i=0; i<readDataSize;i++) {
+      if (i>=sendData.size()) v_sendData.push_back(0);
+      else v_sendData.push_back((uint8)sendData[i]);
+    }
+    bool dataSame = true;
+	  for (unsigned i = 0;  i < readDataSize; ++i ) {
+	  	if (v_sendData[i] != readData[i]) {
+        dataSame = false;
+        std::cout<<"[Error] Data starts to become different from below"<<std::endl;
+	  		printf("SendData[%#08x]: %#04x, ReadData[%#08x]: %#04x\n", i+readStartAddress, v_sendData[i], i+readStartAddress, readData[i]);
+	  		break;
+	  	}
+	  }
+    if (dataSame) std::cout<<"[Success] "<<readDataSize<<" bytes of data are as expected"<<endl;
+  }
+
+  std::cout<<"[Success] Read flash"<<std::endl;
 
   double seconds = (std::chrono::duration<double>(std::chrono::high_resolution_clock::now() - beginTime)).count();
   std::cout<<"Program took "<<seconds<<" seconds"<<std::endl;

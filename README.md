@@ -66,8 +66,8 @@ TODO
 +Identified problem with write when over 256 bytes and has a start address.+
 +The wroten data is looped back+
 +Print read with correct address+
++Clean up comments+
 
-Clean up comments
 Find why dummy is strange
 fix warnings
 Make command for previous cmdFastQuadRead

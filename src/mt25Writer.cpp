@@ -19,7 +19,7 @@ int main(int argc, char const *argv[]) {
   enum Protocol {spi, qspi};
   Protocol writeProtocol = qspi;
   // Max startAddress: 0xFFFFFF
-  uint32 sendStartAddress = 0x10010;
+  uint32 sendStartAddress = 0x00000;
 	// Max dataSize: 16777216 (255 bytes per write, 65535 bytes per read)
   uint32 sendDataSize = 256; //bytes
 
@@ -89,6 +89,8 @@ the highest excluded neutralino mass is about 1250~\GeV.})";
 	}
 
   // Write to flash
-  if (writeProtocol == qspi) Mt25Flash::qspiFlashWrite(ftHandle, sendStartAddress, v_sendData);
-  else if (writeProtocol == spi) Mt25Flash::spiFlashWrite(ftHandle, sendStartAddress, v_sendData);
+  if (writeProtocol == qspi) Mt25Flash::qspiFlashWrite(ftHandle, sendStartAddress, v_sendData, verbose);
+  else if (writeProtocol == spi) Mt25Flash::spiFlashWrite(ftHandle, sendStartAddress, v_sendData, verbose);
+
+  std::cout<<"[Success] Wrote to flash"<<std::endl;
 }
