@@ -29,7 +29,7 @@ cd ../
 mkdir lib
 cp /Volumes/ft422/libft4222.1.4.2.184.dylib lib
 mkdir include #if not already there
-cp /Volumes/ft422/\*.h include
+cp /Volumes/ft422/*.h include
 hdiutil detach /Volumes/ft422
 ~~~~
 
@@ -61,16 +61,3 @@ Below is a list of the software
 - MT25QU128ABA8ESF writer : mt25Writer
 - MT25QU128ABA8ESF reader : mt25Reader
 - MT25QU128ABA8ESF write and read test : mt25Tester
-
-TODO
-+Identified problem with write when over 256 bytes and has a start address.+
-+The wroten data is looped back+
-+Print read with correct address+
-+Clean up comments+
-+Find why dummy is strange+
-+fix warnings+
-+Answer quesiton on mt25Flash.h line 21+
-
-Make command for previous cmdFastQuadRead
-
-Unmark * in readme
