@@ -93,5 +93,5 @@ the highest excluded neutralino mass is about 1250~\GeV.})";
   if (writeProtocol == qspi) Mt25Flash::qspiFlashWrite(ftHandle, sendStartAddress, v_sendData, verbose);
   else if (writeProtocol == spi) Mt25Flash::spiFlashWrite(ftHandle, sendStartAddress, v_sendData, verbose);
 
-  std::cout<<"[Success] Wrote to flash"<<std::endl;
+  std::cout<<"[Success] "<<sendDataSize<<" bytes wrote to flash"<<std::endl;
 }

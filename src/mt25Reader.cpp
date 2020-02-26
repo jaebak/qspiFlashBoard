@@ -95,7 +95,7 @@ int main(int argc, char const *argv[]) {
     if (dataSame) std::cout<<"[Success] "<<readDataSize<<" bytes of data are as expected"<<endl;
   }
 
-  std::cout<<"[Success] Read flash"<<std::endl;
+  std::cout<<"[Success] Read "<<readDataSize<<" bytes of flash"<<std::endl;
 
   double seconds = (std::chrono::duration<double>(std::chrono::high_resolution_clock::now() - beginTime)).count();
   std::cout<<"Program took "<<seconds<<" seconds"<<std::endl;
