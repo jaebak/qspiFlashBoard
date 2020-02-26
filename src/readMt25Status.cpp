@@ -1,5 +1,3 @@
-//#include "WinTypes.h"
-
 #include <iostream>
 #include <vector>
 #include <string>
