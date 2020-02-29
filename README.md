@@ -1,4 +1,4 @@
-Software for writing and reading a QSPI flash (MT25QU128ABA8ESF-0SIT) using
+Software for writing (programming) and reading a QSPI flash (MT25QU128ABA8ESF-0SIT) using
 a USB FTDI development module (UMFT4222EV), which has FT4222H.
 
 # Description
