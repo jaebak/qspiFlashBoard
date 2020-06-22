@@ -6,6 +6,7 @@
 #include <string>
 #include <chrono>
 #include <thread>
+#include <cstring>
 
 #include "ftd2xx.h"
 #include "libft4222.h"
