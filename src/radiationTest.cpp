@@ -4,6 +4,7 @@
 #include <string>
 #include <ncurses.h>
 #include <sqlite3.h>
+#include <bitset>
 
 #include "mt25FlashHighLevel.h"
 
@@ -11,8 +12,10 @@ using std::vector;
 using std::cout;
 using std::endl;
 using std::string;
+using std::bitset;
 
 void validateData(std::vector<unsigned char> const & readData, std::vector<unsigned char> const & expectedData, std::vector<unsigned> & errorAddress) {
+  errorAddress.clear();
   for (unsigned address = 0; address < readData.size(); ++address) {
     if (readData[address] != expectedData[address]) errorAddress.push_back(address);
   }
@@ -42,6 +45,13 @@ void bitFlipData(std::vector<unsigned char> & data) {
   }
 }
 
+void extractData(std::vector<unsigned> const & addresses, std::vector<unsigned char> const & inData, std::vector<unsigned char> & outData) {
+  outData.clear();
+  for (unsigned iAddress = 0; iAddress < addresses.size(); ++iAddress) {
+    outData.push_back(inData[addresses[iAddress]]);
+  }
+}
+
 int main()
 {
   // Set timer
@@ -50,11 +60,35 @@ int main()
   string failMessage;
   int status = 1;
   std::vector<unsigned char> writeData;
+  vector<unsigned char> expectedData;
   std::vector<unsigned char> readData;
   std::vector<unsigned> errorAddress;
   std::vector<unsigned char> emptyData(16777216, 255);
 
-  // Examples
+  // TODO
+  // Finish examples
+  // Make flow for radiation test
+
+  //// Examples
+  // logInformation to sqlite3
+  // showMessage on ncurses
+  // control with ncurses
+
+  //cout<<"[Start] check USB status"<<endl;
+  //unsigned usbStatus = 0;
+  //status = Mt25FlashHighLevel::getUSBStatus(usbStatus, failMessage);
+  //if (!status) cout<<failMessage<<endl;
+  //cout<<usbStatus<<endl;
+  //cout<<"[End  ] check USB status"<<endl;
+
+  //// checkPromStatus
+  //cout<<"[Start] check PROM status"<<endl;
+  //vector<unsigned> promStatusRegisters;
+  //status = Mt25FlashHighLevel::getPromStatus(promStatusRegisters, failMessage);
+  //if (!status) cout<<failMessage<<endl;
+  //for(unsigned iStatus = 0; iStatus<promStatusRegisters.size(); ++iStatus) cout<<bitset<8>(promStatusRegisters[iStatus])<<endl;
+  //cout<<"[End  ] check PROM status"<<endl;
+
   // Erase all
   cout<<"[Start] erase PROM"<<endl;
   status = Mt25FlashHighLevel::eraseProm(failMessage);
@@ -68,18 +102,29 @@ int main()
   cout<<"[End  ] read PROM"<<endl;
 
   // Validate
-  validateData(readData, emptyData, errorAddress);
+  expectedData = emptyData;
+  validateData(readData, expectedData, errorAddress);
   cout<<"Number of errors: "<<errorAddress.size()<<endl;
 
-  //// Make random data
+  //// Make data
   //makeRandomData(16777216, 1, 0, writeData);
-  // Quick data
-  string sendData = Mt25FlashMsg::makeTestData(16777216);
+  //// Quick data
+  //string sendData = Mt25FlashMsg::makeTestData(16777216);
+  //// convert data to vector
+  //std::vector<unsigned char> v_sendData;
+  //for (int i=0; i<16777216;i++) {
+  //  if (i>=sendData.size()) v_sendData.push_back(0);
+  //  else v_sendData.push_back(sendData[i]);
+  //}
+  //// Test data
   std::vector<unsigned char> v_sendData;
-  for (int i=0; i<16777216;i++) {
-    if (i>=sendData.size()) v_sendData.push_back(0);
-    else v_sendData.push_back(sendData[i]);
+  for (int i=0; i<16777216/2;i++) {
+    v_sendData.push_back(0x00);
   }
+  for (int i=0; i<16777216/2;i++) {
+    v_sendData.push_back(0x00);
+  }
+
   writeData = v_sendData;
   //// bit flip Quick data
   //bitFlipData(writeData);
@@ -97,13 +142,25 @@ int main()
   cout<<"[End  ] read PROM"<<endl;
 
   // Validate
-  validateData(readData, writeData, errorAddress);
+  expectedData = writeData;
+  validateData(readData, expectedData, errorAddress);
   cout<<"Number of errors: "<<errorAddress.size()<<endl;
 
-  // Re-read errors
-  printf("%#04x %#04x\n", writeData[0], writeData[2]);
-  errorAddress.push_back(0);
-  errorAddress.push_back(2);
+  //// Re-read errors
+  //printf("%#04x %#04x\n", writeData[0], writeData[2]);
+  //errorAddress.push_back(0);
+  //errorAddress.push_back(2);
+  //vector<unsigned char> rereadData;
+  //cout<<"[Start] reread PROM"<<endl;
+  //status = Mt25FlashHighLevel::rereadProm(errorAddress, rereadData, failMessage);
+  //if (!status) cout<<failMessage<<endl;
+  //cout<<"[End ] reread PROM"<<endl;
+
+  //// Validate
+  //extractData(errorAddress, writeData, expectedData);
+  //validateData(rereadData, expectedData, errorAddress);
+  //cout<<"Number of errors: "<<errorAddress.size()<<endl;
+
 
   double seconds = (std::chrono::duration<double>(std::chrono::high_resolution_clock::now() - beginTime)).count();
   std::cout<<"Program took "<<seconds<<" seconds"<<std::endl;

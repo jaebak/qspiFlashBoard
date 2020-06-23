@@ -131,6 +131,8 @@ namespace Mt25FlashMsg {
     //  printf("Ran command: %#04x\n", command);
     //  for (int i = 1; i < readBuffer.size(); ++i) printf("Data[%i]: %#04x\n", i, readBuffer[i]);
     //}
+    // Remove first item
+    readBuffer.erase(readBuffer.begin());
 
     if(!waitForFlashReady(ftHandle, message)) {
       message += "\n[runFlashCommand] failed 3";

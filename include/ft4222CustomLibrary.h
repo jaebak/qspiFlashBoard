@@ -28,7 +28,7 @@ namespace Ft4222CustomLibrary {
           devInfo.Description,
           &devInfo.ftHandle);
   
-      if (FT_OK == ftStatus) {
+      if (FT4222_OK == ftStatus) {
         const std::string desc = devInfo.Description;
         if(desc == "FT4222" || desc == "FT4222 A") {
           ft4222DeviceList.push_back(devInfo);
