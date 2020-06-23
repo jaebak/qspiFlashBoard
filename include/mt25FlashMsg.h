@@ -1,5 +1,5 @@
-#ifndef MT25Flash
-#define MT25Flash
+#ifndef MT25FlashMsg
+#define MT25FlashMsg
 
 #include <iostream>
 #include <vector>
@@ -21,9 +21,23 @@
 #define CmdQuadFastRead         0x6B
 #define CmdRead                 0x03
 
-namespace Mt25Flash {
+using std::string;
 
-  unsigned char readStatusRegister(FT_HANDLE ftHandle) {
+namespace Mt25FlashMsg {
+
+  bool trySetLines(FT_HANDLE ftHandle, FT4222_SPIMode spiMode, int nTrials=10) {
+    FT_STATUS ftStatus;
+    for (int iTrial = 0; iTrial < 10; ++iTrial) {
+      ftStatus = FT4222_SPIMaster_SetLines(ftHandle,spiMode);
+      if (FT4222_OK == ftStatus) break;
+      std::this_thread::sleep_for(std::chrono::milliseconds(1));
+    }
+    if (FT4222_OK != ftStatus) {
+      return 0;
+    } else return 1;
+  }
+
+  unsigned char readStatusRegister(FT_HANDLE ftHandle, string & message) {
       std::vector<unsigned char> writeBuffer;
       writeBuffer.push_back(CmdReadStatusRegister);
       writeBuffer.push_back(0xFF);
@@ -37,14 +51,14 @@ namespace Mt25Flash {
       // FT4222_SPIMaster_SingleReadWrite(ftHandle, readBuffer, writeBuffer, bufferSize, sizeTransferred, isEndTransaction)
       ftStatus = FT4222_SPIMaster_SingleReadWrite(ftHandle, &readBuffer[0], &writeBuffer[0], writeBuffer.size(), &sizeTransferred, true);
       if((ftStatus!=FT4222_OK) ||  (sizeTransferred!=writeBuffer.size())) {
-        std::cout<<"readStatusRegister failed"<<std::endl;
+        message = "[readStatusRegister] failed";
         return 0xff;
       }
 
       return readBuffer[1];
   }
 
-  bool waitForFlashReady(FT_HANDLE ftHandle, bool verbose = false) {
+  bool waitForFlashReady(FT_HANDLE ftHandle, string & message, bool verbose = false) {
     const int WAIT_FLASH_READY_TIMES = 500;
 
     int waitTime = 0;
@@ -62,7 +76,7 @@ namespace Mt25Flash {
       // FT4222_SPIMaster_SingleReadWrite(ftHandle, readBuffer, writeBuffer, bufferSize, sizeTransferred, isEndTransaction)
       ftStatus = FT4222_SPIMaster_SingleReadWrite(ftHandle, &readBuffer[0], &writeBuffer[0], writeBuffer.size(), &sizeTransferred, true);
       if((ftStatus!=FT4222_OK) ||  (sizeTransferred!=writeBuffer.size())) {
-        std::cout<<"waitForFlashReady failed"<<std::endl;
+        message = "[waitForFlashReady] failed 1";
         return false;
       }
 
@@ -75,31 +89,30 @@ namespace Mt25Flash {
       waitTime++;
       std::this_thread::sleep_for(std::chrono::milliseconds(1));
     }
-
-
-    std::cout<<"waitForFlashReady failed"<<std::endl;
+    message = "[waitForFlashReady] failed 2";
     return false;
   }
 
-  bool runFlashCommand(FT_HANDLE & ftHandle, unsigned char command, unsigned nBytes) {
+  bool runFlashCommand(FT_HANDLE & ftHandle, unsigned char command, unsigned nBytes, std::vector<unsigned char> & readBuffer, string & message) {
     // Set to spi mode
     FT4222_STATUS ftStatus;
-    ftStatus = FT4222_SPIMaster_SetLines(ftHandle,SPI_IO_SINGLE);
-    if (FT4222_OK != ftStatus) {
-      std::cout<<"FT4222_SPIMaster_SetLines failed"<<std::endl;
-      std::cout<<"runFlashCommand failed"<<std::endl;
+    //ftStatus = FT4222_SPIMaster_SetLines(ftHandle,SPI_IO_SINGLE);
+    //if (FT4222_OK != ftStatus) {
+    bool status = trySetLines(ftHandle, SPI_IO_SINGLE);
+    if (!status) {
+      message = "[runFlashCommand] FT4222_SPIMaster_SetLines failed";
       return 0;
     }
-    if(!waitForFlashReady(ftHandle)) {
+    if(!waitForFlashReady(ftHandle, message)) {
       return false;
-      std::cout<<"runFlashCommand failed"<<std::endl;
+      message += "\n[runFlashCommand] failed 1";
     }
 
     // Set write and read buffers
     std::vector<unsigned char> writeBuffer;
     writeBuffer.push_back(command);
     for (int i=0; i<nBytes; ++i) writeBuffer.push_back(0xFF);
-    std::vector<unsigned char> readBuffer;
+    //std::vector<unsigned char> readBuffer;
     readBuffer.resize(nBytes+1);
 
     // Execute command
@@ -108,24 +121,26 @@ namespace Mt25Flash {
     ftStatus = FT4222_SPIMaster_SingleReadWrite(ftHandle, &readBuffer[0], &writeBuffer[0], writeBuffer.size(), &sizeTransferred, true);
 
     if (ftStatus!=FT4222_OK) {
-      std::cout<<"runFlashCommand failed"<<std::endl;
-      printf("command: %#04x\n", command);
+      message = "[runFlashCommand] failed 2\n";
+      char buf[80];
+      sprintf(buf, "command: %#04x\n", command);
+      message =+ buf;
       return false;
     }
-    else {
-      printf("Ran command: %#04x\n", command);
-      for (int i = 1; i < readBuffer.size(); ++i) printf("Data[%i]: %#04x\n", i, readBuffer[i]);
-    }
+    //else {
+    //  printf("Ran command: %#04x\n", command);
+    //  for (int i = 1; i < readBuffer.size(); ++i) printf("Data[%i]: %#04x\n", i, readBuffer[i]);
+    //}
 
-    if(!waitForFlashReady(ftHandle)) {
+    if(!waitForFlashReady(ftHandle, message)) {
+      message += "\n[runFlashCommand] failed 3";
       return false;
-      std::cout<<"runFlashCommand failed"<<std::endl;
     }
 
     return true;
   } 
 
-  bool writeEnableCommand(FT_HANDLE & ftHandle, bool verbose = false)
+  bool writeEnableCommand(FT_HANDLE & ftHandle, std::string & message, bool verbose = false)
   {
     const int WAIT_FLASH_READY_TIMES = 500;
 
@@ -137,11 +152,11 @@ namespace Mt25Flash {
     for(int i=0; i<WAIT_FLASH_READY_TIMES; ++i) {
       ftStatus = FT4222_SPIMaster_SingleWrite(ftHandle, &outBuffer, 1, &sizeTransferred, true);
       if((ftStatus!=FT4222_OK) ||  (sizeTransferred!=1)) {
-        std::cout<<"writeEnableCommand failed"<<std::endl;
+        message = "[writeEnableCommand] failed 1";
         return false;
       }
 
-      uint16 statusRegister = readStatusRegister(ftHandle);
+      uint16 statusRegister = readStatusRegister(ftHandle, message);
       if ((statusRegister & 0x03) == 0x02) {
         return true;
       }
@@ -149,11 +164,12 @@ namespace Mt25Flash {
       std::this_thread::sleep_for(std::chrono::milliseconds(1));
     }
 
-    std::cout<<"writeEnableCommand failed"<<std::endl;
+    if (message.size()!=0) message += "\n[writeEnableCommand] failed 2";
+    else message = "\n[writeEnableCommand] failed 2";
     return false;
   }
 
-  bool blockEraseCommand(FT_HANDLE ftHandle, uint32 address)
+  bool blockEraseCommand(FT_HANDLE ftHandle, uint32 address, std::string & message)
   {
     uint16 sizeTransferred;
     FT4222_STATUS ftStatus;
@@ -166,47 +182,49 @@ namespace Mt25Flash {
 
     ftStatus = FT4222_SPIMaster_SingleWrite(ftHandle, &writeBuffer[0], writeBuffer.size(), &sizeTransferred, true);
     if((ftStatus!=FT4222_OK) ||  (sizeTransferred != writeBuffer.size())) {
-      std::cout<<"blockEraseCommand failed"<<std::endl;
+      message = "[blockEraseCommand] failed 1";
       return false;
     }
 
-    if(!waitForFlashReady(ftHandle)) {
+    if(!waitForFlashReady(ftHandle, message)) {
+      message += "\n[blockEraseCommand] failed 2";
       return false;
-      std::cout<<"blockEraseCommand failed"<<std::endl;
     }
 
     return true;
   }
 
-  bool eraseFlash(FT_HANDLE & ftHandle, uint32 startAddress, uint32 endAddress) {
+  bool eraseFlash(FT_HANDLE & ftHandle, uint32 startAddress, uint32 endAddress, std::string & message) {
     FT4222_STATUS ftStatus;
 
-    ftStatus = FT4222_SPIMaster_SetLines(ftHandle,SPI_IO_SINGLE);
-    if (FT4222_OK != ftStatus) {
-      std::cout<<"set spi single line failed!"<<std::endl;
+    //ftStatus = FT4222_SPIMaster_SetLines(ftHandle,SPI_IO_SINGLE);
+    //if (FT4222_OK != ftStatus) {
+    bool status = trySetLines(ftHandle, SPI_IO_SINGLE);
+    if (!status) {
+      message = "[eraseFlash] set spi single line failed!";
       return 0;
     }
 
-    if (!waitForFlashReady(ftHandle)) {
-      std::cout<<"EraseFlash failed"<<std::endl;
+    if (!waitForFlashReady(ftHandle, message)) {
+      message += "\n[eraseFlash] failed 1";
       return false;
     }
 
     while (startAddress < endAddress) {
-      if(!writeEnableCommand(ftHandle)) {
-        std::cout<<"EraseFlash failed"<<std::endl;
+      if(!writeEnableCommand(ftHandle, message)) {
+        message += "\n[eraseFlash] failed 2";
         return false;
       }
 
-      if(!blockEraseCommand(ftHandle, startAddress)) {
-        std::cout<<"EraseFlash failed"<<std::endl;
+      if(!blockEraseCommand(ftHandle, startAddress, message)) {
+        message += "\n[eraseFlash] failed 3";
         return false;
       }
 
       startAddress += 0x10000;
 
-      if(!waitForFlashReady(ftHandle)) {
-        std::cout<<"EraseFlash failed"<<std::endl;
+      if(!waitForFlashReady(ftHandle, message)) {
+        message += "\n[eraseFlash] failed 4";
         return false;
       }
       else continue;
@@ -214,7 +232,7 @@ namespace Mt25Flash {
     return true;
   }
 
-  bool quadIOPageProgramCommand(FT_HANDLE ftHandle, uint32 address, unsigned char * pData , uint16 size)
+  bool quadIOPageProgramCommand(FT_HANDLE ftHandle, uint32 address, unsigned char * pData , uint16 size, std::string & message)
   {
     uint32 sizeOfRead;
     FT4222_STATUS ftStatus;
@@ -230,25 +248,21 @@ namespace Mt25Flash {
     // FT4222_SPIMaster_MultiReadWrite(ftHandle, readBuffer, writeBuffer, singleWriteBytes, multiWriteBytes, sizeOfRead)
     ftStatus = FT4222_SPIMaster_MultiReadWrite(ftHandle, NULL, &writeBuffer[0], 1, 3+size, 0, &sizeOfRead);
     if(ftStatus!=FT4222_OK) {
-      std::cout<<"FT4222_SPIMaster_MultiReadWrite failed"<<std::endl;
-      std::cout<<"quadIOPageProgramCommand failed"<<std::endl;
+      message = "[quadIOPageProgramCommand] FT4222_SPIMaster_MultiReadWrite failed";
       return false;
     }
 
     return true;
   }
 
-  bool qspiFlashWrite(FT_HANDLE & ftHandle, uint32 startAddress, std::vector<unsigned char> sendData, bool verbose=false) {
+  bool qspiFlashWrite(FT_HANDLE & ftHandle, uint32 startAddress, std::vector<unsigned char> sendData, std::string & message, bool verbose=false) {
     unsigned nBytes = sendData.size();
     FT_STATUS ftStatus;
 
     // Erase flash
-    std::cout<<"Start flash erase"<<std::endl;
-    if(!eraseFlash(ftHandle, startAddress, startAddress + nBytes)) {
-      std::cout<<"qspiFlashWrite failed"<<std::endl;
+    if(!eraseFlash(ftHandle, startAddress, startAddress + nBytes, message)) {
+      message += "\n[qspiFlashWrite] failed 1";
       return 0;
-    } else {
-      std::cout<<"End flash erase"<<std::endl;
     }
 
     // Write Flash
@@ -257,34 +271,49 @@ namespace Mt25Flash {
 
     int printCounter = 1;
     int counter = 0;
-    std::cout<<"Start flash write"<<std::endl;
+    bool status = 1;
     while (notSentByte > 0) {
       counter++;
       uint16 data_size = std::min<size_t>(SPI_FLASH_MAX_WRITE_SIZE, notSentByte);
       // Prevent from going over page
       if (counter==1) data_size = data_size - startAddress;
 
-      ftStatus = FT4222_SPIMaster_SetLines(ftHandle,SPI_IO_SINGLE);
-      if (FT4222_OK != ftStatus) {
-        std::cout<<"set spi single line failed!"<<std::endl;
-        std::cout<<"qspiFlashWrite failed"<<std::endl;
+      //ftStatus = FT4222_SPIMaster_SetLines(ftHandle,SPI_IO_SINGLE);
+      //if (FT4222_OK != ftStatus) {
+      status = trySetLines(ftHandle, SPI_IO_SINGLE);
+      if (!status) {
+        message = "[qspiFlashWrite] set spi single line failed 1";
         return 0;
       }
 
-      if (!writeEnableCommand(ftHandle)) {
-        std::cout<<"qspiFlashWrite failed"<<std::endl;
+      if (!writeEnableCommand(ftHandle, message)) {
+        message += "\n[qspiFlashWrite] failed 2";
+        return 0;
+      }
+      
+      //ftStatus = FT4222_SPIMaster_SetLines(ftHandle,SPI_IO_QUAD);
+      //if (FT4222_OK != ftStatus) {
+      //  message = "[qspiFlashWrite] set spi quad line failed 2";
+      //  return 0;
+      //}
+      //// Let's try a few times if fail
+      //for (int iTrial = 0; iTrial < 10; ++iTrial) {
+      //  ftStatus = FT4222_SPIMaster_SetLines(ftHandle,SPI_IO_QUAD);
+      //  if (FT4222_OK == ftStatus) break;
+      //  std::this_thread::sleep_for(std::chrono::milliseconds(1));
+      //}
+      //if (FT4222_OK != ftStatus) {
+      //  message = "[qspiFlashWrite] set spi quad line failed 2";
+      //  return 0;
+      //}
+      status = trySetLines(ftHandle, SPI_IO_QUAD);
+      if (!status) {
+        message = "[qspiFlashWrite] set spi quad line failed 2";
         return 0;
       }
 
-      ftStatus = FT4222_SPIMaster_SetLines(ftHandle,SPI_IO_QUAD);
-      if (FT4222_OK != ftStatus) {
-        std::cout<<"set spi quad line failed!"<<std::endl;
-        std::cout<<"qspiFlashWrite failed"<<std::endl;
-        return 0;
-      }
-
-      if(!quadIOPageProgramCommand(ftHandle, startAddress+sentByte, &sendData[sentByte], data_size)) {
-        std::cout<<"qspiFlashWrite failed"<<std::endl;
+      if(!quadIOPageProgramCommand(ftHandle, startAddress+sentByte, &sendData[sentByte], data_size, message)) {
+        message += "\n[qspiFlashWrite] failed 3";
         return 0;
       } else {
         if (verbose && (printCounter == counter)) {
@@ -298,23 +327,24 @@ namespace Mt25Flash {
       notSentByte -= data_size;
       sentByte    += data_size;
     }
-    std::cout<<"End flash write"<<std::endl;
+    //std::cout<<"End flash write"<<std::endl;
 
-    ftStatus = FT4222_SPIMaster_SetLines(ftHandle,SPI_IO_SINGLE);
-    if (FT4222_OK != ftStatus) {
-      std::cout<<"set spi single line failed!"<<std::endl;
-      std::cout<<"qspiFlashWrite failed"<<std::endl;
+    //ftStatus = FT4222_SPIMaster_SetLines(ftHandle,SPI_IO_SINGLE);
+    //if (FT4222_OK != ftStatus) {
+    status = trySetLines(ftHandle, SPI_IO_SINGLE);
+    if (!status) {
+      message = "[qspiFlashWrite] set spi single line failed 3";
       return false;
     }
-    if(!waitForFlashReady(ftHandle)) {
-      std::cout<<"qspiFlashWrite failed"<<std::endl;
+    if(!waitForFlashReady(ftHandle, message)) {
+      message += "\n[qspiFlashWrite] failed 4";
       return false;
     }
 
     return true;
   }
 
-  bool pageProgramCommand(FT_HANDLE ftHandle, uint32 address, unsigned char * pData , uint16 size)
+  bool pageProgramCommand(FT_HANDLE ftHandle, uint32 address, unsigned char * pData , uint16 size, std::string & message)
   {
     uint16 sizeTransferred;
     FT4222_STATUS ftStatus;
@@ -329,23 +359,21 @@ namespace Mt25Flash {
 
     ftStatus = FT4222_SPIMaster_SingleWrite(ftHandle, &writeBuffer[0], writeBuffer.size(), &sizeTransferred, true);
     if((ftStatus!=FT4222_OK) ||  (sizeTransferred != writeBuffer.size())) {
-      std::cout<<"pageProgramCommand failed"<<std::endl;
+      message = "[pageProgramCommand] failed";
       return false;
     }
 
     return true;
   }
 
-  bool spiFlashWrite(FT_HANDLE & ftHandle, uint32 startAddress, std::vector<unsigned char> sendData, bool verbose = false) {
+  bool spiFlashWrite(FT_HANDLE & ftHandle, uint32 startAddress, std::vector<unsigned char> sendData, std::string & message, bool verbose = false) {
     unsigned nBytes = sendData.size();
     FT_STATUS ftStatus;
 
     // Erase flash
-    if(!eraseFlash(ftHandle, startAddress, startAddress + nBytes)) {
-      std::cout<<"spiFlashWrite failed"<<std::endl;
+    if(!eraseFlash(ftHandle, startAddress, startAddress + nBytes, message)) {
+      message += "\n[spiFlashWrite] failed 1";
       return 0;
-    } else {
-      std::cout<<"Flash was erased"<<std::endl;
     }
 
     // Write flash
@@ -359,20 +387,20 @@ namespace Mt25Flash {
       // Prevent from going over page
       if (counter==1) data_size = data_size - startAddress;
 
-      if(!waitForFlashReady(ftHandle)) {
-        std::cout<<"spiFlashWrite failed"<<std::endl;
+      if(!waitForFlashReady(ftHandle, message)) {
+        message += "[spiFlashWrite] failed 2";
         return 0;
       }
 
-      if(!writeEnableCommand(ftHandle)) {
-        std::cout<<"spiFlashWrite failed"<<std::endl;
+      if(!writeEnableCommand(ftHandle, message)) {
+        message += "[spiFlashWrite] failed 3";
         return 0;
       }
 
-      if(!pageProgramCommand(ftHandle, startAddress+sentByte, &sendData[sentByte], data_size)) {
-        std::cout<<"spiFlashWrite failed"<<std::endl;
+      if(!pageProgramCommand(ftHandle, startAddress+sentByte, &sendData[sentByte], data_size, message)) {
+        message += "\n[spiFlashWrite] failed 4";
         return 0;
-      } else {
+      } else if (verbose) {
         printf("writing flash start address =[%#08x] %d bytes\n", startAddress+sentByte, data_size);
       }
 
@@ -380,8 +408,8 @@ namespace Mt25Flash {
       sentByte    += data_size;
     }
 
-    if(!waitForFlashReady(ftHandle)) {
-      std::cout<<"spiFlashWrite failed"<<std::endl;
+    if(!waitForFlashReady(ftHandle, message)) {
+      message += "\n[spiFlashWrite] failed 5";
       return 0;
     }
 
@@ -404,7 +432,7 @@ namespace Mt25Flash {
 		return sendData;
 	}
 
-  bool readDataBytesCommand(FT_HANDLE ftHandle, uint32 address, unsigned char * pData , uint32 size)
+  bool readDataBytesCommand(FT_HANDLE ftHandle, uint32 address, unsigned char * pData , uint32 size, std::string & message)
   {
     FT4222_STATUS ftStatus;
     uint16 sizeTransferred;
@@ -418,23 +446,21 @@ namespace Mt25Flash {
     // FT4222_SPIMaster_SingleWrite(ftHandle, buffer, bufferSize, sizeTransferred, isEndTransaction)
     ftStatus = FT4222_SPIMaster_SingleWrite(ftHandle, &writeBuffer[0], writeBuffer.size(), &sizeTransferred, false);
     if((ftStatus!=FT4222_OK) ||  (sizeTransferred != writeBuffer.size())) {
-			std::cout<<"FT4222_SPIMaster_SingleWrite failed"<<std::endl;
-			std::cout<<"readDataBytesCommand failed"<<std::endl;
+			message = "[readDataBytesCommand] FT4222_SPIMaster_SingleWrite failed";
       return false;
     }
 
     // FT4222_SPIMaster_SingleRead(ftHandle, buffer, bufferSize, sizeOfRead, isEndTransaction)
     ftStatus = FT4222_SPIMaster_SingleRead(ftHandle, pData, size, &sizeTransferred, true);
     if((ftStatus!=FT4222_OK) ||  (sizeTransferred != size)) {
-      std::cout<<"FT4222_SPIMaster_SingleRead failed"<<std::endl;
-      std::cout<<"readDataBytesCommand failed"<<std::endl;
+      message = "[readDataBytesCommand] FT4222_SPIMaster_SingleRead failed";
       return false;
     }
 
     return true;
   }
 
-  bool spiFlashRead(FT_HANDLE & ftHandle, uint32 startAddress, unsigned nBytes, std::vector<unsigned char> & readData, bool verbose = false) {
+  bool spiFlashRead(FT_HANDLE & ftHandle, uint32 startAddress, unsigned nBytes, std::vector<unsigned char> & readData, std::string & message, bool verbose = false) {
     FT4222_STATUS ftStatus;
     readData.resize(nBytes);
 		uint32 notReadByte = nBytes;
@@ -443,8 +469,8 @@ namespace Mt25Flash {
 		while (notReadByte > 0) {
       uint16 dataSize = std::min<size_t>(FT4222_MAX_READ_SIZE, notReadByte);
 
-      if(!readDataBytesCommand(ftHandle, startAddress+readByte, &readData[readByte], dataSize)) {
-        std::cout<<"spiFlashRead failed"<<std::endl;
+      if(!readDataBytesCommand(ftHandle, startAddress+readByte, &readData[readByte], dataSize, message)) {
+        message += "\n[spiFlashRead] failed 1";
         return 0;
       } else {
         if (verbose) printf("reading flash start address =[%#08x] %d bytes\n", startAddress+readByte, dataSize);
@@ -454,15 +480,15 @@ namespace Mt25Flash {
       readByte    += dataSize;
     }
 
-    if(!waitForFlashReady(ftHandle)) {
-      std::cout<<"spiFlashRead failed"<<std::endl;
+    if(!waitForFlashReady(ftHandle, message)) {
+      message += "\n[spiFlashRead] failed 2";
       return false;
     }
 
     return true;
   }
 
-  bool fastQuadReadCommand(FT_HANDLE ftHandle, uint32 address, unsigned char * pData , uint32 size, int nDummyDivide2=4)
+  bool fastQuadReadCommand(FT_HANDLE ftHandle, uint32 address, unsigned char * pData , uint32 size, std::string & message, int nDummyDivide2=4)
   {
     FT4222_STATUS ftStatus;
     uint32 sizeTransferred;
@@ -476,45 +502,52 @@ namespace Mt25Flash {
     // FT4222_SPIMaster_MultiReadWrite(ftHandle, readBuffer, writeBuffer, singleWriteBytes, multiWriteBytes, sizeOfRead)
     ftStatus = FT4222_SPIMaster_MultiReadWrite(ftHandle, pData, &writeBuffer[0], 1+3, nDummyDivide2, size, &sizeTransferred);
     if((ftStatus!=FT4222_OK) ||  (sizeTransferred != size)) {
-      std::cout<<"FT4222_SPIMaster_MultiReadWrite failed"<<std::endl;
-      std::cout<<"fastQuadReadCmd failed"<<std::endl;
+      message = "[fastQuadReadCommand] FT4222_SPIMaster_MultiReadWrite failed";
       return false;
     }
 
     return true;
   }
 
-  bool qspiFlashRead(FT_HANDLE & ftHandle, uint32 startAddress, unsigned nBytes, std::vector<unsigned char> & readData, bool verbose = false) {
+  bool qspiFlashRead(FT_HANDLE & ftHandle, uint32 startAddress, unsigned nBytes, std::vector<unsigned char> & readData, std::string & message, bool verbose = false) {
     FT4222_STATUS ftStatus;
     readData.resize(nBytes);
 		uint32 notReadByte = nBytes;
 		uint32 readByte = 0;
 
+    bool status = 1;
+
 		while (notReadByte > 0) {
       uint16 dataSize = std::min<size_t>(FT4222_MAX_READ_SIZE, notReadByte);
 
-      ftStatus = FT4222_SPIMaster_SetLines(ftHandle,SPI_IO_QUAD);
-      if (FT4222_OK != ftStatus) {
-        std::cout<<"FT4222_SPIMaster_SetLines failed"<<std::endl;
-        std::cout<<"qspiFlashRead failed"<<std::endl;
+      //ftStatus = FT4222_SPIMaster_SetLines(ftHandle,SPI_IO_QUAD);
+      //if (FT4222_OK != ftStatus) {
+      status = trySetLines(ftHandle, SPI_IO_QUAD);
+      if (!status) {
+        message = "[qspiFlashRead] FT4222_SPIMaster_SetLines failed";
         return 0;
       }
 
       // Read flash
-      if(!fastQuadReadCommand(ftHandle, startAddress+readByte, &readData[readByte], dataSize)) {
-        std::cout<<"qspiFlashRead failed"<<std::endl;
+      if(!fastQuadReadCommand(ftHandle, startAddress+readByte, &readData[readByte], dataSize, message)) {
+        message += "\n[qspiFlashRead] failed";
         return 0;
       } else {
         if (verbose) printf("reading flash start address =[%#08x] %d bytes\n", startAddress+readByte, dataSize);
       }
 
-      ftStatus = FT4222_SPIMaster_SetLines(ftHandle,SPI_IO_SINGLE);
-      if (FT4222_OK != ftStatus) {
-        std::cout<<"FT4222_SPIMaster_SetLines failed"<<std::endl;
-        std::cout<<"fastQuadReadCmd failed"<<std::endl;
+      //ftStatus = FT4222_SPIMaster_SetLines(ftHandle,SPI_IO_SINGLE);
+      //if (FT4222_OK != ftStatus) {
+      status = trySetLines(ftHandle, SPI_IO_SINGLE);
+      if (!status) {
+        message = "[fastQuadRead] FT4222_SPIMaster_SetLines failed";
         return 0;
       }
-      waitForFlashReady(ftHandle);
+
+      if(!waitForFlashReady(ftHandle, message)) {
+        message += "\n[qspiFlashRead] failed 2";
+        return false;
+      }
 
       notReadByte -= dataSize;
       readByte    += dataSize;

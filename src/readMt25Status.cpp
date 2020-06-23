@@ -35,7 +35,8 @@ int main(int argc, char const *argv[]) {
   }
 
   // Set ft4222 as spi master. Default system clock is 60 MHz.
-  ftStatus = FT4222_SPIMaster_Init(ftHandle, SPI_IO_SINGLE, CLK_DIV_4, CLK_IDLE_LOW, CLK_LEADING, 0x01);
+  //ftStatus = FT4222_SPIMaster_Init(ftHandle, SPI_IO_SINGLE, CLK_DIV_4, CLK_IDLE_LOW, CLK_LEADING, 0x01);
+  ftStatus = FT4222_SPIMaster_Init(ftHandle, SPI_IO_SINGLE, CLK_DIV_2, CLK_IDLE_LOW, CLK_LEADING, 0x01);
   if (FT_OK != ftStatus) {
       cout<<"Init FT4222 as SPI master device failed!"<<endl;;
       return 0;

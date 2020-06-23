@@ -14,17 +14,21 @@ using std::endl;
 using std::string;
 
 int main(int argc, char const *argv[]) {
+  // Set timer
+  std::chrono::high_resolution_clock::time_point beginTime = std::chrono::high_resolution_clock::now();
+
   // Settings
-  bool verbose = true;
+  bool verbose = false;
   enum Protocol {spi, qspi};
   Protocol writeProtocol = qspi;
   // Max startAddress: 0xFFFFFF
   uint32 sendStartAddress = 0x00000;
-	// Max dataSize: 16777216 (255 bytes per write, 65535 bytes per read)
-  uint32 sendDataSize = 256; //bytes
+  // Max dataSize: 16777216 (255 bytes per write, 65535 bytes per read)
+  //uint32 sendDataSize = 256; //bytes
+  uint32 sendDataSize = 16777216; //bytes
 
-	// Set data
-	string sendData;
+  // Set data
+  string sendData;
   //sendData = "QSPI test board is ready for radiation testing!";
   sendData = \
 R"(Results are reported from a search for supersymmetric particles in proton-proton collisions
@@ -42,9 +46,9 @@ gluino pair production with three-body decays into top quarks and
 neutralinos. Gluinos with a mass below about 2150~\GeV are excluded at a 95\%
 confidence level for scenarios with $m({\tilde\chi^0_1})<700$~\GeV, and
 the highest excluded neutralino mass is about 1250~\GeV.})";
-  sendDataSize = sendData.size();
-  //sendData = Mt25Flash::makeTestData(sendDataSize);
+  sendData = Mt25Flash::makeTestData(sendDataSize);
   //sendData = Mt25Flash::makeTestData(sendDataSize, 10);
+  sendDataSize = sendData.size();
   cout<<"To send data size: "<<sendDataSize<<endl;
 
   // Get ft4222 device
@@ -85,13 +89,16 @@ the highest excluded neutralino mass is about 1250~\GeV.})";
     if (i>=sendData.size()) v_sendData.push_back(0);
     else v_sendData.push_back(sendData[i]);
   }
-  if (verbose) {
-	  for (int i=0; i<v_sendData.size(); ++i) printf("send data[%#08x] %#04x\n", i+sendStartAddress, v_sendData[i]);
-	}
+  //if (verbose) {
+	//	for (int i=0; i<v_sendData.size(); ++i) printf("send data[%#08x] %#04x\n", i+sendStartAddress, v_sendData[i]);
+	//}
 
   // Write to flash
   if (writeProtocol == qspi) Mt25Flash::qspiFlashWrite(ftHandle, sendStartAddress, v_sendData, verbose);
   else if (writeProtocol == spi) Mt25Flash::spiFlashWrite(ftHandle, sendStartAddress, v_sendData, verbose);
 
   std::cout<<"[Success] "<<sendDataSize<<" bytes wrote to flash"<<std::endl;
+
+  double seconds = (std::chrono::duration<double>(std::chrono::high_resolution_clock::now() - beginTime)).count();
+  std::cout<<"Program took "<<seconds<<" seconds"<<std::endl;
 }
