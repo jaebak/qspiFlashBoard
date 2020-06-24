@@ -157,6 +157,32 @@ namespace Mt25FlashHighLevel {
   }
 
   // Return: 1: success, 0: Failed
+  int writePromMessage(std::vector<unsigned char> const & writeData, std::string & failMessage, std::string const & outFilename) {
+    int status = 1;
+    FT_HANDLE ftHandle = NULL;
+
+    status = setupFt4222(ftHandle, failMessage);
+    if (!status) {
+      failMessage = "[writeProm] failed 1\n"+failMessage;
+    } else {
+      status = Mt25FlashMsg::qspiFlashWriteMessage(ftHandle, 0, writeData, failMessage, outFilename);
+      if (!status) {
+        failMessage = "[writeProm] failed 2\n"+failMessage;
+      }
+    }
+
+    FT_STATUS ftStatus;
+    ftStatus = FT_Close(ftHandle);
+    if (FT4222_OK != ftStatus) {
+      if (failMessage.size() == 0) failMessage = "[writeProm] FT_Close failed";
+      else failMessage += "\n[writeProm] FT_Close failed";
+      return 0;
+    }
+
+    return status;
+  }
+
+  // Return: 1: success, 0: Failed
   int getUSBStatus(unsigned & usbStatus, std::string & failMessage) {
     usbStatus = 0;
 
@@ -240,6 +266,42 @@ namespace Mt25FlashHighLevel {
     }
 
     return status;
+  }
+
+  string getTime() {
+    char timeBuffer[32];
+    std::time_t now = std::time(NULL);
+    std::strftime(timeBuffer, 32, "%Y-%m-%d %H:%M:%S", std::localtime(&now));
+  	return timeBuffer;
+  }
+  
+  void readFile(std::string filename, std::vector<unsigned char> & data) {
+    data.clear();
+    std::ifstream txtFile;
+    txtFile.open(filename);
+    char t_char;
+    while (txtFile.get(t_char)) {
+      data.push_back(t_char);
+      //printf("%#04x\n",t_char);
+    }
+    txtFile.close();
+  }
+  
+  void validateData(std::vector<unsigned char> const & readData, std::vector<unsigned char> const & expectedData, std::vector<unsigned> & errorAddress) {
+    errorAddress.clear();
+    for (unsigned address = 0; address < readData.size(); ++address) {
+      //printf("%#04x %#04x\n", readData[address], expectedData[address]);
+      if (readData[address] != expectedData[address]) {
+        errorAddress.push_back(address);
+      }
+    }
+  }
+  
+  void logMessage(string filename, string message) {
+    std::ofstream outFile;
+  	outFile.open(filename, std::ios_base::app);
+    outFile<<message<<endl;
+    outFile.close();
   }
 
 }
