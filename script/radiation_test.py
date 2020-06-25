@@ -7,6 +7,17 @@ import os
 import subprocess
 import re
 
+def getNewLogName():
+  index = 1;
+  newLogName = 'run'+str(index)
+  while(1):
+    if os.path.exists(newLogName+'.out'):
+      index += 1
+    else:
+      break
+    newLogName = 'run'+str(index)
+  return newLogName
+
 def tail(f, n, offset=0):
   proc = subprocess.check_output(['tail', '-n', str(n + offset), f])
   #return proc.decode('utf-8')
@@ -15,14 +26,14 @@ def tail(f, n, offset=0):
   return '\n'.join(proc)
 
 def getOutputMessage():
-  if not os.path.exists('pid.'+str(pid)+'.out'): return ""
-  return tail('pid.'+str(pid)+'.out', 15)
+  if not os.path.exists(str(pid)+'.out'): return ""
+  return tail(str(pid)+'.out', 20)
 
 def getTotalErrors():
   # Find all lines with 'Number of errors'
   totalError = 0
-  if not os.path.exists('pid.'+str(pid)+'.out'): return -1
-  with open('pid.'+str(pid)+'.out') as inFile:
+  if not os.path.exists(str(pid)+'.out'): return -1
+  with open(str(pid)+'.out') as inFile:
     for line in inFile:
       if 'Number of errors' not in line: continue
       error = [int(s) for s in line.split() if s.isdigit()][-1]
@@ -32,23 +43,23 @@ def getTotalErrors():
 def getTotalUsbErrors():
   # Find all lines with 'Number of errors'
   totalError = 0
-  if not os.path.exists('pid.'+str(pid)+'.out'): return -1
-  with open('pid.'+str(pid)+'.out') as inFile:
+  if not os.path.exists(str(pid)+'.out'): return -1
+  with open(str(pid)+'.out') as inFile:
     for line in inFile:
       if '[ERROR]' not in line: continue
       totalError += 1
   return totalError
 
 def getUsbStatus():
-  subprocess.run(['./bin/checkUsb','pid.'+str(pid)])
-  proc = tail('pid.'+str(pid)+'.out',1, 2)
+  subprocess.run(['./bin/checkUsb',str(pid)])
+  proc = tail(str(pid)+'.out',1, 2)
   if 'USB status' not in proc: return 'Error'
   proc = [int(s) for s in proc.split() if s.isdigit()][-1]
   return str(proc)
 
 def getPromStatus():
-  subprocess.run(['./bin/checkProm', 'pid.'+str(pid)])
-  proc = tail('pid.'+str(pid)+'.out',7, 2)
+  subprocess.run(['./bin/checkProm', str(pid)])
+  proc = tail(str(pid)+'.out',7, 2)
   totalStatus = ''
   for line in proc.split('\n'):
     if 'Prom status' not in line: return 'Error\n'
@@ -59,12 +70,13 @@ def menu():
   usbStatus.set_text("USB controller status (Should be 2): "+getUsbStatus()+"\n")
   promStatus.set_text("Prom status: \n"+getPromStatus())
 
-  title = 'Radiation Test: PID='+str(pid)+'\n'
+  title = 'Radiation Test: Log='+str(pid)+'.out\n'
   body = [urwid.Text(title), timeStatus, usbStatus, promStatus, applicationStatus, totalErrorStatus, usbErrorStatus]
-  choices = ['check USB&Prom status', 'continuousReadAndValidate', 'writeProm', 'eraseProm', 'readAndValidate', 'Exit']
+  choices = ['write to log', 'check USB&Prom status', 'continuousReadAndValidate', 'writeProm', 'eraseProm', 'readAndValidate', 'Exit']
   for c in choices:
     button = urwid.Button(c)
     if (c=="Exit"): urwid.connect_signal(button, 'click', exit_program)
+    elif (c=="write to log"): urwid.connect_signal(button, 'click', run_logInformation, c)
     elif (c=="check USB&Prom status"): urwid.connect_signal(button, 'click', run_checkStatus, c)
     elif (c=="continuousReadAndValidate"): urwid.connect_signal(button, 'click', run_application, c)
     elif (c=="writeProm"): urwid.connect_signal(button, 'click', run_writeProm, c)
@@ -78,6 +90,26 @@ def menu():
 #def execute(program):
 #  process = subprocess.run('./bin/'+program)
 
+def run_logInformation(button, choice):
+  response = urwid.Text(['Running ', choice, ': Log='+str(pid)+'.out\n'])
+  askLog.set_edit_text('')
+  reply = urwid.Text("")
+  cancel = urwid.Button('Cancel')
+  enter = urwid.Button("Log information")
+
+  urwid.connect_signal(cancel, 'click', goto_menu)
+  urwid.connect_signal(enter, 'click', logInformation)
+  main.original_widget = urwid.Filler(urwid.Pile([response, timeStatus, askLog, reply, 
+    urwid.AttrMap(enter, None, focus_map='reversed'), 
+    urwid.AttrMap(cancel, None, focus_map='reversed'),
+    outputMessage]))
+
+def logInformation(button):
+  log = '[INFO] '+datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")+' Log: '+askLog.get_edit_text()+'\n'
+  with open(str(pid)+'.out', 'a+') as outFile:
+    outFile.write(log)
+  main.original_widget = urwid.Padding(menu(), left=0, right=0)
+
 def run_checkStatus(button, choice):
   usbStatus.set_text("USB controller status (Should be 2): "+getUsbStatus()+"\n")
   promStatus.set_text("Prom status: \n"+getPromStatus())
@@ -85,34 +117,34 @@ def run_checkStatus(button, choice):
 
 def run_readValidate(button, choice):
   # Spawn application
-  applications.append(subprocess.Popen(['./bin/'+choice, 'pid.'+str(pid), currentDataFile.get_text()[0]]));
-  response = urwid.Text(['Running ', choice, ': PID='+str(pid)+'\n'])
+  applications.append(subprocess.Popen(['./bin/'+choice, str(pid), currentDataFile.get_text()[0]]));
+  response = urwid.Text(['Running ', choice, ': Log='+str(pid)+'.out\n'])
   urwid.connect_signal(stopNext, 'click', stop_application, choice)
   main.original_widget = urwid.Filler(urwid.Pile([response, timeStatus, applicationStatus, totalErrorStatus, usbErrorStatus,
     urwid.AttrMap(stopNext, None, focus_map='reversed'), outputMessage]))
 
 def run_eraseProm(button, choice):
   # Spawn application
-  applications.append(subprocess.Popen(['./bin/'+choice, 'pid.'+str(pid)]));
+  applications.append(subprocess.Popen(['./bin/'+choice, str(pid)]));
   currentDataFile.set_text('data/empty.dat')
-  response = urwid.Text(['Running ', choice, ': PID='+str(pid)+'\n'])
+  response = urwid.Text(['Running ', choice, ': Log='+str(pid)+'.out\n'])
   urwid.connect_signal(stopNext, 'click', stop_application, choice)
   main.original_widget = urwid.Filler(urwid.Pile([response, timeStatus, applicationStatus, totalErrorStatus, usbErrorStatus,
     urwid.AttrMap(stopNext, None, focus_map='reversed'), outputMessage]))
 
 def run_writeProm(button, choice):
   # Spawn application
-  applications.append(subprocess.Popen(['./bin/'+choice, 'pid.'+str(pid)]));
+  applications.append(subprocess.Popen(['./bin/'+choice, str(pid)]));
   currentDataFile.set_text('data/counter.dat')
-  response = urwid.Text(['Running ', choice, ': PID='+str(pid)+'\n'])
+  response = urwid.Text(['Running ', choice, ': Log='+str(pid)+'.out\n'])
   urwid.connect_signal(stopNext, 'click', stop_application, choice)
   main.original_widget = urwid.Filler(urwid.Pile([response, timeStatus, applicationStatus, totalErrorStatus, usbErrorStatus,
     urwid.AttrMap(stopNext, None, focus_map='reversed'), outputMessage]))
 
 def run_application(button, choice):
   # Spawn application
-  applications.append(subprocess.Popen(['./bin/'+choice, 'pid.'+str(pid)]));
-  response = urwid.Text(['Running ', choice, ': PID='+str(pid)+'\n'])
+  applications.append(subprocess.Popen(['./bin/'+choice, str(pid)]));
+  response = urwid.Text(['Running ', choice, ': Log='+str(pid)+'.out\n'])
   urwid.connect_signal(stopNext, 'click', stop_application, choice)
   main.original_widget = urwid.Filler(urwid.Pile([response, timeStatus, applicationStatus, totalErrorStatus, usbErrorStatus,
     urwid.AttrMap(stopNext, None, focus_map='reversed'), outputMessage]))
@@ -123,7 +155,7 @@ def stop_application(button, choice):
     application = applications.pop()
     application.kill()
     application.wait()
-  response = urwid.Text([choice, ' has stopped. PID='+str(pid)+'\n'])
+  response = urwid.Text([choice, ' has stopped. Log='+str(pid)+'.out\n'])
   done = urwid.Button(u'Ok')
   urwid.connect_signal(done, 'click', goto_menu)
   main.original_widget = urwid.Filler(urwid.Pile([response, timeStatus, applicationStatus, totalErrorStatus, usbErrorStatus,
@@ -178,12 +210,14 @@ if __name__ == "__main__":
   usbErrorStatus = urwid.Text("Total USB errors: -1\n")
   applications = []
   applicationStatus = urwid.Text("No application is running\n")
-  pid = os.getpid()
+  #pid = os.getpid()
+  pid = getNewLogName()
   stopNext = urwid.Button('Stop')
   currentDataFile = urwid.Text('data/counter.dat')
   outputMessage = urwid.Text('\n----Application Output----\n')
   usbStatus = urwid.Text("USB controller status (Should be 2): Unknown\n")
   promStatus = urwid.Text("Prom status: Unknown\n")
+  askLog = urwid.Edit(("Enter text\n"))
 
   main = urwid.Padding(menu(), left=2, right=2)
 

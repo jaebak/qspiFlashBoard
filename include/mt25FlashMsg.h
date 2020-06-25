@@ -406,7 +406,7 @@ namespace Mt25FlashMsg {
         }
       }
 			//if (counter%100==0) std::cout<<"Wrote up to "<<counter*SPI_FLASH_MAX_WRITE_SIZE<<" bits."<<std::endl;
-      if (counter%100==0) logMessage(outFilename, "Wrote up to "+std::to_string(counter*SPI_FLASH_MAX_WRITE_SIZE)+" bits.");
+      if (counter%1000==0) logMessage(outFilename, "Wrote up to "+std::to_string(counter*SPI_FLASH_MAX_WRITE_SIZE)+" bits.");
 
       notSentByte -= data_size;
       sentByte    += data_size;
