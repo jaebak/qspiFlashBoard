@@ -21,8 +21,8 @@ int main(int argc, char * argv[]) {
   else pid = argv[1];
 
 	string outFilename = pid+".out";
-	string errorFilename = pid+".error";
-	string statusFilename = pid+".status";
+	//string errorFilename = pid+".error";
+	//string statusFilename = pid+".status";
 
   string counterDataFilename = "data/counter.dat";
   string failMessage;
@@ -34,11 +34,11 @@ int main(int argc, char * argv[]) {
   
   logMessage(outFilename, "[INFO] "+getTime()+" [Start] write PROM");
   status = Mt25FlashHighLevel::writePromMessage(expectedData, failMessage, outFilename);
-  if (!status) logMessage(errorFilename, failMessage);
+  if (!status) logMessage(outFilename, "[ERROR] "+getTime()+" writeProm\n"+failMessage);
   logMessage(outFilename, "[INFO] "+getTime()+" [End  ] write PROM");
 
   // status 1: success, 0: fail
-  logMessage(statusFilename, std::to_string(status));
+  logMessage(outFilename, "[INFO] "+getTime()+" writeProm !return: "+std::to_string(status));
 
   return !status;
 }

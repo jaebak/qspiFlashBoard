@@ -21,7 +21,7 @@ int main(int argc, char * argv[]) {
   else pid = argv[1];
 
 	string outFilename = pid+".out";
-	string errorFilename = pid+".error";
+	//string errorFilename = pid+".error";
 	//string statusFilename = pid+".status";
   //std::ofstream statusFile;
 	//statusFile.open(statusFilename);
@@ -38,12 +38,20 @@ int main(int argc, char * argv[]) {
 		// Read data
     logMessage(outFilename, "[INFO] "+getTime()+" [Start] read PROM");
     status = Mt25FlashHighLevel::readProm(readData, failMessage);
-    if (!status) logMessage(errorFilename, failMessage);
+    if (!status) logMessage(outFilename, "[ERROR] "+getTime()+" continuousReadAndValidate\n"+failMessage);
     logMessage(outFilename, "[INFO] "+getTime()+" [End  ] read PROM");
 
 		// Validate data
     Mt25FlashHighLevel::validateData(readData, expectedData, errorAddress);
     logMessage(outFilename, "[INFO] "+getTime()+" Number of errors: "+std::to_string(errorAddress.size()));
+    unsigned maxError = 256;
+    for (unsigned iAddress = 0; iAddress < errorAddress.size(); ++iAddress) {
+      logMessage(outFilename, "[INFO] "+getTime()+" Error address: "+std::to_string(errorAddress[iAddress]));
+      if (iAddress>=maxError) {
+        logMessage(outFilename, "[INFO] "+getTime()+" More than "+std::to_string(maxError)+" error address");
+        break;
+      }
+    }
 	}
 
   return !status;

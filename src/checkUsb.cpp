@@ -29,13 +29,15 @@ int main(int argc, char * argv[]) {
   string outMessage;
 	int status;
 
-  logMessage(outFilename, "[INFO] "+getTime()+" [Start] erase PROM");
-  status = Mt25FlashHighLevel::eraseProm(failMessage);
-  if (!status) logMessage(outFilename, "[ERROR] "+getTime()+" eraseProm\n"+failMessage);
-  logMessage(outFilename, "[INFO] "+getTime()+" [End  ] erase PROM");
+  logMessage(outFilename, "[INFO] "+getTime()+" [Start] Get USB status");
+  unsigned usbStatus = 0;
+  status = Mt25FlashHighLevel::getUSBStatus(usbStatus, failMessage);
+  logMessage(outFilename, "[INFO] "+getTime()+" USB status: "+std::to_string(usbStatus));
+  if (!status) logMessage(outFilename, "[ERROR] "+getTime()+" checkUsb\n"+failMessage);
+  logMessage(outFilename, "[INFO] "+getTime()+" [End  ] Get USB status");
 
   // status 1: success, 0: fail
-  logMessage(outFilename, "[INFO] "+getTime()+" eraseProm !return: "+std::to_string(status));
+  logMessage(outFilename, "[INFO] "+getTime()+" checkUsb !return: "+std::to_string(status));
 
   return !status;
 }

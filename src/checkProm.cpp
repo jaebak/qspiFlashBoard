@@ -29,13 +29,17 @@ int main(int argc, char * argv[]) {
   string outMessage;
 	int status;
 
-  logMessage(outFilename, "[INFO] "+getTime()+" [Start] erase PROM");
-  status = Mt25FlashHighLevel::eraseProm(failMessage);
-  if (!status) logMessage(outFilename, "[ERROR] "+getTime()+" eraseProm\n"+failMessage);
-  logMessage(outFilename, "[INFO] "+getTime()+" [End  ] erase PROM");
+  logMessage(outFilename, "[INFO] "+getTime()+" [Start] Get Prom status");
+  vector<unsigned> promStatusRegisters;
+  status = Mt25FlashHighLevel::getPromStatus(promStatusRegisters, failMessage);
+  for(unsigned iStatus = 0; iStatus<promStatusRegisters.size(); ++iStatus) {
+    logMessage(outFilename, "[INFO] "+getTime()+" Prom status: "+bitset<8>(promStatusRegisters[iStatus]).to_string());
+	}
+  if (!status) logMessage(outFilename, "[ERROR] "+getTime()+" checkProm\n"+failMessage);
+  logMessage(outFilename, "[INFO] "+getTime()+" [End  ] Get Prom status");
 
   // status 1: success, 0: fail
-  logMessage(outFilename, "[INFO] "+getTime()+" eraseProm !return: "+std::to_string(status));
+  logMessage(outFilename, "[INFO] "+getTime()+" checkProm !return: "+std::to_string(status));
 
   return !status;
 }

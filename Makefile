@@ -1,4 +1,4 @@
-all : bin/readFt4222Status bin/readMt25Status bin/mt25Writer bin/mt25Reader bin/mt25Tester bin/mt25Eraser bin/radiationTest bin/makeData bin/continuousReadAndValidate bin/writeProm bin/readAndValidate bin/eraseProm
+all : bin/readFt4222Status bin/readMt25Status bin/mt25Writer bin/mt25Reader bin/mt25Tester bin/mt25Eraser bin/radiationTest bin/makeData bin/continuousReadAndValidate bin/writeProm bin/readAndValidate bin/eraseProm bin/checkUsb bin/checkProm
 
 bin/readFt4222Status : build/readFt4222Status.o
 	g++ build/readFt4222Status.o -lft4222 -L lib -o bin/readFt4222Status
@@ -71,6 +71,18 @@ bin/eraseProm : build/eraseProm.o
 
 build/eraseProm.o : src/eraseProm.cpp include/mt25FlashMsg.h include/ft4222CustomLibrary.h
 	g++ src/eraseProm.cpp -I include -std=c++11 -c -o build/eraseProm.o
+
+bin/checkUsb : build/checkUsb.o
+	g++ build/checkUsb.o -lft4222 -lncurses -lsqlite3 -L lib -o bin/checkUsb
+
+build/checkUsb.o : src/checkUsb.cpp include/mt25FlashMsg.h include/ft4222CustomLibrary.h
+	g++ src/checkUsb.cpp -I include -std=c++11 -c -o build/checkUsb.o
+	
+bin/checkProm : build/checkProm.o
+	g++ build/checkProm.o -lft4222 -lncurses -lsqlite3 -L lib -o bin/checkProm
+
+build/checkProm.o : src/checkProm.cpp include/mt25FlashMsg.h include/ft4222CustomLibrary.h
+	g++ src/checkProm.cpp -I include -std=c++11 -c -o build/checkProm.o
 	
 clean:
 	rm -f build/*
