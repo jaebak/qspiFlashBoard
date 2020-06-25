@@ -40,7 +40,7 @@ int main(int argc, char * argv[]) {
   vector<unsigned char> expectedData;
 	Mt25FlashHighLevel::readFile(counterDataFilename, expectedData);
   vector<unsigned char> readData;
-  vector<unsigned> errorAddress;
+  vector<unsigned> errorAddresses;
   
 	// Read data
   logMessage(outFilename, "[INFO] "+getTime()+" [Start] read PROM");
@@ -50,11 +50,17 @@ int main(int argc, char * argv[]) {
 
 	// Validate data
   logMessage(outFilename, "[INFO] "+getTime()+" Validate with "+counterDataFilename);
-  Mt25FlashHighLevel::validateData(readData, expectedData, errorAddress);
-  logMessage(outFilename, "[INFO] "+getTime()+" Number of errors: "+std::to_string(errorAddress.size()));
+  Mt25FlashHighLevel::validateData(readData, expectedData, errorAddresses);
+  logMessage(outFilename, "[INFO] "+getTime()+" Number of errors: "+std::to_string(errorAddresses.size()));
   unsigned maxError = 256;
-  for (unsigned iAddress = 0; iAddress < errorAddress.size(); ++iAddress) {
-    logMessage(outFilename, "[INFO] "+getTime()+" Error address: "+std::to_string(errorAddress[iAddress]));
+  for (unsigned iAddress = 0; iAddress < errorAddresses.size(); ++iAddress) {
+    //logMessage(outFilename, "[INFO] "+getTime()+" Error address: "+std::to_string(errorAddresses[iAddress]));
+    unsigned errorAddress = errorAddresses[iAddress];
+    char expected[10]; 
+    sprintf(expected, "%#04x", expectedData[errorAddress]);
+    char read[10];
+    sprintf(read, "%#04x", readData[errorAddress]);
+    logMessage(outFilename, "[INFO] "+getTime()+" Error address: "+std::to_string(errorAddress)+" expected: "+expected+" read: "+read);
     if (iAddress>=maxError) {
       logMessage(outFilename, "[INFO] "+getTime()+" More than "+std::to_string(maxError)+" error address");
       break;
