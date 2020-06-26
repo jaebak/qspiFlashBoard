@@ -42,20 +42,22 @@ int main(int argc, char * argv[]) {
     logMessage(outFilename, "[INFO] "+getTime()+" [End  ] read PROM");
 
 		// Validate data
-    Mt25FlashHighLevel::validateData(readData, expectedData, errorAddresses);
-    logMessage(outFilename, "[INFO] "+getTime()+" Number of errors: "+std::to_string(errorAddresses.size()));
-    unsigned maxError = 256;
-    for (unsigned iAddress = 0; iAddress < errorAddresses.size(); ++iAddress) {
-      //logMessage(outFilename, "[INFO] "+getTime()+" Error address: "+std::to_string(errorAddresses[iAddress]));
-      unsigned errorAddress = errorAddresses[iAddress];
-      char expected[10]; 
-      sprintf(expected, "%#04x", expectedData[errorAddress]);
-      char read[10];
-      sprintf(read, "%#04x", readData[errorAddress]);
-      logMessage(outFilename, "[INFO] "+getTime()+" Error address: "+std::to_string(errorAddress)+" expected: "+expected+" read: "+read);
-      if (iAddress>=maxError) {
-        logMessage(outFilename, "[INFO] "+getTime()+" More than "+std::to_string(maxError)+" error address");
-        break;
+    if (status) {
+      Mt25FlashHighLevel::validateData(readData, expectedData, errorAddresses);
+      logMessage(outFilename, "[INFO] "+getTime()+" Number of errors: "+std::to_string(errorAddresses.size()));
+      unsigned maxError = 256;
+      for (unsigned iAddress = 0; iAddress < errorAddresses.size(); ++iAddress) {
+        //logMessage(outFilename, "[INFO] "+getTime()+" Error address: "+std::to_string(errorAddresses[iAddress]));
+        unsigned errorAddress = errorAddresses[iAddress];
+        char expected[10]; 
+        sprintf(expected, "%#04x", expectedData[errorAddress]);
+        char read[10];
+        sprintf(read, "%#04x", readData[errorAddress]);
+        logMessage(outFilename, "[INFO] "+getTime()+" Error address: "+std::to_string(errorAddress)+" expected: "+expected+" read: "+read);
+        if (iAddress>=maxError) {
+          logMessage(outFilename, "[INFO] "+getTime()+" More than "+std::to_string(maxError)+" error address");
+          break;
+        }
       }
     }
 	}
