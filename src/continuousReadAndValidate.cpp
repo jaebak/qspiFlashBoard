@@ -59,6 +59,8 @@ int main(int argc, char * argv[]) {
           break;
         }
       }
+    } else {
+      std::this_thread::sleep_for(std::chrono::milliseconds(1000));
     }
 	}
 
